@@ -46,6 +46,8 @@ st.markdown("""
     
     div.stCodeBlock { background-color: #111111 !important; border: 1px solid #d4af37 !important; border-radius: 0px !important; }
     code { color: #d4af37 !important; font-size: 1.1rem !important; }
+    
+    /* Fondo negro para las celdas de Streamlit */
     .stDataFrame [data-testid="stTable"] { background-color: #000000 !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -150,7 +152,10 @@ retiro_total_semanal = f_retiro + v_retiro
 # Cálculo Interés Compuesto S&P 500 (10% anual a 30 años)
 r_semanal = 0.10 / 52
 semanas_30_anios = 30 * 52
-proyeccion_sp500 = retiro_total_semanal * (((1 + r_semanal)**semanas_30_anios) - 1) / r_semanal
+if retiro_total_semanal > 0:
+    proyeccion_sp500 = retiro_total_semanal * (((1 + r_semanal)**semanas_30_anios) - 1) / r_semanal
+else:
+    proyeccion_sp500 = 0.0
 
 # ==========================================
 # FRONTEND
@@ -185,7 +190,7 @@ with m3:
             </div>
         """, unsafe_allow_html=True)
     else:
-        color_profit = "#00E676" if total_profit > 0 else "#d4af37"
+        color_profit = "#00E676" if total_profit > 0 else "#ffffff"
         st.markdown(f"""
             <div data-testid='metric-container'>
                 <label data-testid='stMetricLabel'>PROFIT GENERADO (EXCEDENTE)</label>
@@ -195,27 +200,23 @@ with m3:
 
 st.markdown("---")
 
-# --- TABLA CON ESTILOS BLINDADOS A PRUEBA DE FALLOS ---
+# --- TABLA DESGLOSE DE CAPITAL REPARADA ---
 st.subheader("Desglose de Capital")
 
-def apply_styles(x):
-    # Creamos un dataframe vacío con la misma estructura para inyectar CSS puro
-    styles = pd.DataFrame('', index=x.index, columns=x.columns)
-    for col in x.columns:
-        if col == 'Profit':
-            styles[col] = ['color: #00E676 !important; font-weight: 800 !important;' if v > 0 else 'color: #ffffff !important;' for v in x[col]]
-        elif col in ['Meta', 'Fijo', 'Variable', 'Total']:
-            styles[col] = ['color: #d4af37 !important;' if isinstance(v, (int, float)) and v > 0 else 'color: #ffffff !important;' for v in x[col]]
-        else:
-            styles[col] = 'color: #ffffff !important;'
-    return styles
+# Lógica segura de estilo columna por columna (Evita colapsos en Streamlit)
+def pintar_verde_profit(s):
+    return ['color: #00E676 !important; font-weight: bold;' if v > 0 else 'color: #ffffff;' for v in s]
 
-styled_df = df.style.apply(apply_styles, axis=None)\
-    .format({
-        "Meta": "${:,.2f}", "Fijo": "${:,.2f}", "Variable": "${:,.2f}", 
-        "Total": "${:,.2f}", "Profit": "${:,.2f}"
-    })\
-    .set_properties(**{'background-color': '#000000', 'border-color': '#d4af3722'})
+def pintar_dorado_general(s):
+    return ['color: #d4af37 !important;' if isinstance(v, (int, float)) and v > 0 else 'color: #ffffff;' for v in s]
+
+styled_df = df.style.format({
+    "Meta": "${:,.2f}", "Fijo": "${:,.2f}", "Variable": "${:,.2f}", 
+    "Total": "${:,.2f}", "Profit": "${:,.2f}"
+})\
+.apply(pintar_verde_profit, subset=["Profit"])\
+.apply(pintar_dorado_general, subset=["Meta", "Fijo", "Variable", "Total"])\
+.set_properties(**{'background-color': '#000000', 'border-color': '#d4af3722'})
 
 st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
