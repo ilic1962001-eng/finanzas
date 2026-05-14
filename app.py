@@ -94,18 +94,16 @@ st.markdown("""
         transform: scale(1.02);
     }
     
-    /* CLABES: NEGRAS EN FONDO BLANCO */
+    /* CLABES: GRIS METÁLICO (Forzando a todos los elementos internos) */
     div[data-testid="stCodeBlock"] {
-        background-color: #FFFFFF !important;
-        border: 2px solid #d4af37 !important;
+        background-color: #111111 !important;
+        border: 1px solid #d4af37 !important;
     }
-    div[data-testid="stCodeBlock"] code, 
-    div[data-testid="stCodeBlock"] span,
-    div[data-testid="stCodeBlock"] pre {
-        color: #000000 !important;
+    div[data-testid="stCodeBlock"] * {
+        color: #888888 !important;
         font-family: 'Montserrat', sans-serif !important;
         font-weight: 800 !important;
-        -webkit-text-fill-color: #000000 !important;
+        -webkit-text-fill-color: #888888 !important;
     }
 
     .stDataFrame [data-testid="stTable"] {
@@ -229,7 +227,7 @@ with col_der:
     proyeccion = retiro_total * (((1 + (0.10/52))**(30 * 52)) - 1) / (0.10/52) if retiro_total > 0 else 0
 
     # ==========================================
-    # RENDERIZADO VISUAL
+    # RENDERIZADO VISUAL DEL DASHBOARD
     # ==========================================
     st.markdown("### RESUMEN SEMANAL")
     c1, c2, c3 = st.columns(3)
@@ -272,7 +270,6 @@ with col_der:
     with c_trans:
         st.subheader("🏦 Cuentas a Transferir")
         
-        # Diccionario seguro e independiente para iterar TODAS las transferencias
         transferencias_completas = [
             ("CUENTA DIEZMO", diezmo_fijo + diezmo_var, "POR DEFINIR"),
             ("NU (Renta, Transporte, Novia, Colchón)", f_renta + v_renta + f_transp + v_transp + f_novia + v_novia + f_colchon + v_colchon, "638180000126660124"),
@@ -283,7 +280,6 @@ with col_der:
         ]
         
         for banco, monto, clabe in transferencias_completas:
-            # Solo muestra el banco si hay dinero destinado a él
             if monto > 0:
                 st.markdown(f"<p style='color:#d4af37; font-weight:600; margin-bottom:2px;'>{banco}</p>", unsafe_allow_html=True)
                 st.markdown(f"<p style='font-size:1.1rem; margin-top:0px;'>Transferir: <b style='color:#00E676;'>${monto:,.2f}</b></p>", unsafe_allow_html=True)
