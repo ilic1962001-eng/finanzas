@@ -34,6 +34,8 @@ st.markdown("""
     }
     
     [data-testid="stSidebar"] { background-color: #0a0a0a; border-right: 1px solid #d4af3733; }
+    
+    /* Métricas */
     [data-testid="stMetricValue"] { color: #d4af37 !important; font-size: 2.2rem !important; font-weight: 600 !important; }
     [data-testid="stMetricLabel"] { color: #ffffff !important; font-size: 0.9rem !important; text-transform: uppercase; letter-spacing: 1px; }
     
@@ -44,8 +46,17 @@ st.markdown("""
         border-radius: 4px;
     }
     
-    div.stCodeBlock { background-color: #111111 !important; border: 1px solid #d4af37 !important; border-radius: 0px !important; }
-    code { color: #d4af37 !important; font-size: 1.1rem !important; }
+    /* CLABES: Fondo blanco con letras NEGRAS para máxima legibilidad */
+    div.stCodeBlock { 
+        background-color: #FFFFFF !important; 
+        border: 1px solid #d4af37 !important; 
+        border-radius: 4px !important; 
+    }
+    code { 
+        color: #000000 !important; 
+        font-size: 1.1rem !important; 
+        font-weight: 600 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -55,8 +66,16 @@ st.markdown("---")
 # ==========================================
 # CONSTANTES Y CLABES
 # ==========================================
-DIEZMO_PCT = 0.10; GASTO_PCT = 0.65; DEUDA_PCT = 0.10; AHORRO_PCT = 0.10; INVERSION_PCT = 0.15
-META_RENTA = 875.0; META_TRANSPORTE = 430.0; META_NOVIA = 500.0; META_VIAJES = 300.0
+DIEZMO_PCT = 0.10
+GASTO_PCT = 0.65
+DEUDA_PCT = 0.10
+AHORRO_PCT = 0.10
+INVERSION_PCT = 0.15
+
+META_RENTA = 875.0
+META_TRANSPORTE = 430.0
+META_NOVIA = 500.0
+META_VIAJES = 300.0
 meta_inamovibles_total = META_RENTA + META_TRANSPORTE + META_NOVIA + META_VIAJES
 
 CUENTAS = {
@@ -74,7 +93,7 @@ with st.sidebar:
     ingreso_var_bruto = st.number_input("VARIABLE ($)", min_value=0.0, value=0.0, step=100.0)
 
 # ==========================================
-# LÓGICA (BACKEND)
+# LÓGICA (EL GATILLO DEL 65%)
 # ==========================================
 diezmo_fijo = ingreso_fijo_bruto * DIEZMO_PCT; fijo_neto = ingreso_fijo_bruto - diezmo_fijo
 diezmo_var = ingreso_var_bruto * DIEZMO_PCT; var_neto = ingreso_var_bruto - diezmo_var
@@ -82,15 +101,26 @@ diezmo_var = ingreso_var_bruto * DIEZMO_PCT; var_neto = ingreso_var_bruto - diez
 f_renta = f_transp = f_novia = f_viajes = f_deuda = f_emerg = f_colchon = f_retiro = 0
 v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_retiro = 0
 
+# EL GATILLO: Si el 65% del fijo neto cubre los básicos, todos los sobres crecen
 capacidad_gasto_fijo = fijo_neto * GASTO_PCT
+
 if capacidad_gasto_fijo >= meta_inamovibles_total:
+    # MODO CRECIMIENTO: Distribución Proporcional (Todos los sobres suben)
     p_renta, p_transp = META_RENTA/meta_inamovibles_total, META_TRANSPORTE/meta_inamovibles_total
     p_novia, p_viajes = META_NOVIA/meta_inamovibles_total, META_VIAJES/meta_inamovibles_total
-    f_renta, f_transp = capacidad_gasto_fijo*p_renta, capacidad_gasto_fijo*p_transp
-    f_novia, f_viajes = capacidad_gasto_fijo*p_novia, capacidad_gasto_fijo*p_viajes
-    f_deuda, f_retiro = fijo_neto*DEUDA_PCT, fijo_neto*INVERSION_PCT
-    f_emerg, f_colchon = (fijo_neto*AHORRO_PCT)*0.5, (fijo_neto*AHORRO_PCT)*0.5
+    
+    f_renta = capacidad_gasto_fijo * p_renta
+    f_transp = capacidad_gasto_fijo * p_transp
+    f_novia = capacidad_gasto_fijo * p_novia
+    f_viajes = capacidad_gasto_fijo * p_viajes
+    
+    # El resto de los sobres también se calculan sobre el total para que sumen
+    f_deuda = fijo_neto * DEUDA_PCT
+    f_emerg = (fijo_neto * AHORRO_PCT) * 0.5
+    f_colchon = (fijo_neto * AHORRO_PCT) * 0.5
+    f_retiro = fijo_neto * INVERSION_PCT
 else:
+    # MODO CASCADA: Rellenando huecos por prioridad
     f_aux = fijo_neto
     f_renta = min(f_aux, META_RENTA); f_aux -= f_renta
     f_transp = min(f_aux, META_TRANSPORTE); f_aux -= f_transp
@@ -101,22 +131,25 @@ else:
     f_colchon = min(f_aux, 250.0); f_aux -= f_colchon
     f_retiro = f_aux
 
+# RESCATE CON VARIABLE
 v_aux = var_neto
 v_renta = min(v_aux, max(0, META_RENTA - f_renta)); v_aux -= v_renta
 v_transp = min(v_aux, max(0, META_TRANSPORTE - f_transp)); v_aux -= v_transp
 v_novia = min(v_aux, max(0, META_NOVIA - f_novia)); v_aux -= v_novia
 v_viajes = min(v_aux, max(0, META_VIAJES - f_viajes)); v_aux -= v_viajes
 
+# 50/30/20 si sobra variable
 if v_aux > 0:
     v_ahorro_t = v_aux * 0.50
     v_deuda, v_retiro = v_aux * 0.30, v_aux * 0.20
     v_emerg, v_colchon = v_ahorro_t * 0.50, v_ahorro_t * 0.50
 
+# ==========================================
+# CÁLCULOS DE FRONTEND
+# ==========================================
 rescate_total = v_renta + v_transp + v_novia + v_viajes
 texto_rescate = f"{(rescate_total / var_neto) * 100:.1f}%" if var_neto > 0 and rescate_total > 0 else "Nada"
-
-asignado_basicos = f_renta + v_renta + f_transp + v_transp + f_novia + v_novia + f_viajes + v_viajes
-deficit_basico = meta_inamovibles_total - asignado_basicos
+deficit_basico = meta_inamovibles_total - (f_renta + v_renta + f_transp + v_transp + f_novia + v_novia + f_viajes + v_viajes)
 
 data = [
     {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Meta": 0.0, "Fijo": diezmo_fijo, "Variable": diezmo_var, "Asignado": diezmo_fijo + diezmo_var},
@@ -130,113 +163,66 @@ data = [
     {"Concepto": "Retiro/Bolsa", "Plataforma": "GBM+", "Meta": 0.0, "Fijo": f_retiro, "Variable": v_retiro, "Asignado": f_retiro + v_retiro},
 ]
 df = pd.DataFrame(data)
-
-# COLUMNA FIT MATEMÁTICA
 df["Fit"] = df.apply(lambda x: x["Asignado"] - x["Meta"] if x["Meta"] > 0 else x["Asignado"], axis=1)
 
-# ==========================================
-# CÁLCULOS SUPERIORES (S&P 500)
-# ==========================================
-ingreso_total_bruto = ingreso_fijo_bruto + ingreso_var_bruto
-ahorro_semanal_generado = f_emerg + v_emerg + f_colchon + v_colchon
+# Proyección S&P 500
 retiro_total_semanal = f_retiro + v_retiro
-
 r_semanal = 0.10 / 52
-semanas_30_anios = 30 * 52
-proyeccion_sp500 = retiro_total_semanal * (((1 + r_semanal)**semanas_30_anios) - 1) / r_semanal if retiro_total_semanal > 0 else 0.0
+proyeccion_sp500 = retiro_total_semanal * (((1 + r_semanal)**(30 * 52)) - 1) / r_semanal if retiro_total_semanal > 0 else 0.0
 
 # ==========================================
-# FRONTEND
+# RENDERIZADO
 # ==========================================
-st.markdown("<h4 style='color:#ffffff; text-align:center;'>RESUMEN GENERAL</h4>", unsafe_allow_html=True)
 r1, r2, r3 = st.columns(3)
-with r1: st.metric("INGRESO TOTAL BRUTO", f"${ingreso_total_bruto:,.2f}")
-with r2: st.metric("AHORRO GENERADO (EMERG. + COLCHÓN)", f"${ahorro_semanal_generado:,.2f}")
+with r1: st.metric("INGRESO TOTAL BRUTO", f"${(ingreso_fijo_bruto + ingreso_var_bruto):,.2f}")
+with r2: st.metric("AHORRO GENERADO", f"${(f_emerg + v_emerg + f_colchon + v_colchon):,.2f}")
 with r3: 
-    st.markdown(f"""
-        <div data-testid='metric-container'>
-            <label data-testid='stMetricLabel'>PROYECCIÓN S&P 500 (30 AÑOS)</label>
-            <div data-testid='stMetricValue' style='color: #00E676 !important;'>${proyeccion_sp500:,.2f}</div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"<div data-testid='metric-container'><label data-testid='stMetricLabel'>PROYECCIÓN S&P 500 (30 AÑOS)</label><div data-testid='stMetricValue' style='color: #00E676 !important;'>${proyeccion_sp500:,.2f}</div></div>", unsafe_allow_html=True)
 
 st.markdown("---")
 
-st.markdown("<h4 style='color:#ffffff; text-align:center;'>MÉTRICAS DEL SISTEMA</h4>", unsafe_allow_html=True)
 m1, m2, m3 = st.columns(3)
 with m1: st.metric("NETO SEMANAL", f"${(fijo_neto + var_neto):,.2f}")
-with m2: st.metric("% VAR. USADO EN RESCATE", texto_rescate)
+with m2: st.metric("% VAR. EN RESCATE", texto_rescate)
 with m3: 
-    excedente_inamovibles = sum([row["Fit"] for _, row in df.iterrows() if row["Meta"] > 0 and row["Fit"] > 0])
-    
+    total_fit_inamovibles = sum([row["Fit"] for _, row in df.iterrows() if row["Meta"] > 0 and row["Fit"] > 0])
     if deficit_basico > 0.01:
-        st.markdown(f"""
-            <div data-testid='metric-container' style='border-color: #FF000044;'>
-                <label data-testid='stMetricLabel' style='color: #FF0000 !important;'>DÉFICIT (FALTANTE MÍNIMOS)</label>
-                <div data-testid='stMetricValue' style='color: #FF0000 !important;'>-${deficit_basico:,.2f}</div>
-            </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"<div data-testid='metric-container' style='border-color: #FF000044;'><label data-testid='stMetricLabel' style='color: #FF0000 !important;'>DÉFICIT BÁSICOS</label><div data-testid='stMetricValue' style='color: #FF0000 !important;'>-${deficit_basico:,.2f}</div></div>", unsafe_allow_html=True)
     else:
-        color_profit = "#00E676" if excedente_inamovibles > 0 else "#ffffff"
-        st.markdown(f"""
-            <div data-testid='metric-container'>
-                <label data-testid='stMetricLabel'>PROFIT GENERADO EN SOBRES</label>
-                <div data-testid='stMetricValue' style='color: {color_profit} !important;'>${excedente_inamovibles:,.2f}</div>
-            </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"<div data-testid='metric-container'><label data-testid='stMetricLabel'>PROFIT EN SOBRES</label><div data-testid='stMetricValue' style='color: #00E676 !important;'>${total_fit_inamovibles:,.2f}</div></div>", unsafe_allow_html=True)
 
 st.markdown("---")
 
-# --- TABLA DESGLOSE DE CAPITAL (VERSIÓN NATIVA SIN BUG DE ESTILOS) ---
+# TABLA DEFINITIVA (Símbolos para evitar errores de renderizado)
 st.subheader("Desglose de Capital")
-
-# Creamos un DF limpio y formateamos directamente los strings para evitar colapsos
 df_display = df.copy()
 
-def format_moneda(v):
-    return f"${v:,.2f}"
+def format_fit_icon(v):
+    if v < -0.01: return f"🔴 -${abs(v):,.2f}"
+    elif v > 0.01: return f"🟢 +${v:,.2f}"
+    else: return "⚪ $0.00"
 
-def format_fit(v):
-    if v < -0.01:
-        return f"🔴 -${abs(v):,.2f}"
-    elif v > 0.01:
-        return f"🟢 +${v:,.2f}"
-    else:
-        return f"⚪ $0.00"
+for c in ["Meta", "Fijo", "Variable", "Asignado"]:
+    df_display[c] = df[c].apply(lambda x: f"${x:,.2f}")
+df_display["Fit"] = df["Fit"].apply(format_fit_icon)
 
-df_display["Meta"] = df["Meta"].apply(format_moneda)
-df_display["Fijo"] = df["Fijo"].apply(format_moneda)
-df_display["Variable"] = df["Variable"].apply(format_moneda)
-df_display["Asignado"] = df["Asignado"].apply(format_moneda)
-df_display["Fit"] = df["Fit"].apply(format_fit)
-
-# Mandamos el DF crudo a Streamlit, 100% garantizado que se renderiza
 st.dataframe(df_display, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
-# --- TRANSFERENCIAS ---
-c1, c_esp, c2 = st.columns([1, 0.1, 1.2])
-
+# TRANSFERENCIAS (CLABES NEGRAS)
+c1, c2 = st.columns([1, 1.2])
 with c1:
     st.subheader("🏦 CLABEs (Copiables)")
-    df_bancos = df.groupby("Plataforma")["Asignado"].sum().reset_index()
-    df_bancos = df_bancos[df_bancos["Asignado"] > 0]
-    
-    for _, row in df_bancos.iterrows():
-        banco = row["Plataforma"]; monto = row["Asignado"]; clabe_nuda = CUENTAS.get(banco, "PENDIENTE")
-        
-        st.markdown(f"<p style='margin-bottom:0px; font-weight:600; color:#d4af37;'>{banco}</p>", unsafe_allow_html=True)
-        st.markdown(f"<p style='font-size:1.2rem; margin-top:0px;'>Total: <b style='color:#00E676;'>${monto:,.2f}</b></p>", unsafe_allow_html=True)
-        st.code(clabe_nuda, language=None)
+    df_b = df.groupby("Plataforma")["Asignado"].sum().reset_index()
+    for _, row in df_b[df_b["Asignado"] > 0].iterrows():
+        st.markdown(f"<p style='margin-bottom:0px; font-weight:600; color:#d4af37;'>{row['Plataforma']}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='font-size:1.2rem; margin-top:0px;'>Total: <b style='color:#00E676;'>${row['Asignado']:,.2f}</b></p>", unsafe_allow_html=True)
+        st.code(CUENTAS.get(row['Plataforma'], "PENDIENTE"), language=None)
         st.markdown("<br>", unsafe_allow_html=True)
 
 with c2:
     st.subheader("Distribución Visual")
-    fig = px.pie(df_bancos, values='Asignado', names='Plataforma', hole=0.7,
-                 color_discrete_sequence=['#d4af37', '#ffffff', '#444444', '#888888', '#00E676'])
-    fig.update_layout(
-        template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-        font=dict(family="Montserrat", color="#ffffff")
-    )
+    fig = px.pie(df_b[df_b["Asignado"] > 0], values='Asignado', names='Plataforma', hole=0.7, color_discrete_sequence=['#d4af37', '#ffffff', '#444444'])
+    fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', font=dict(family="Montserrat", color="#ffffff"))
     st.plotly_chart(fig, use_container_width=True)
