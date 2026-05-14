@@ -14,10 +14,8 @@ if "mostrar_celebracion" not in st.session_state:
     st.session_state.mostrar_celebracion = False
 
 def confirmar_deposito():
-    # Reiniciar a cero las entradas
     st.session_state.val_fijo = 0.0
     st.session_state.val_var = 0.0
-    # Activar la animación
     st.session_state.mostrar_celebracion = True
 
 # ==========================================
@@ -114,7 +112,6 @@ st.markdown("""
         background-color: #000000 !important;
     }
     
-    /* Borde dorado para el panel fijo izquierdo */
     .panel-izquierdo {
         border-right: 1px solid #d4af3744;
         padding-right: 20px;
@@ -147,18 +144,8 @@ DIEZMO_PCT = 0.10; GASTO_PCT = 0.65; DEUDA_PCT = 0.10; AHORRO_PCT = 0.10; INVERS
 META_RENTA = 875.0; META_TRANSPORTE = 430.0; META_NOVIA = 500.0; META_VIAJES = 300.0
 meta_inamovibles_total = META_RENTA + META_TRANSPORTE + META_NOVIA + META_VIAJES
 
-CUENTAS = {
-    "NU (Cajita)": "638180000126660124", 
-    "NU (Gasto)": "638180000126660124",
-    "GBM+": "601180400073884389", 
-    "SPIN": "728969000033664690",
-    "Cuenta Diezmo": "POR DEFINIR", 
-    "Pago Deuda": "POR DEFINIR", 
-    "CETES": "POR DEFINIR"
-}
-
 # ==========================================
-# DIVISIÓN DE PANTALLA: PANEL FIJO (25%) Y DASHBOARD (75%)
+# PANEL FIJO IZQUIERDO Y DASHBOARD DERECHO
 # ==========================================
 col_izq, col_der = st.columns([1, 3], gap="large")
 
@@ -166,23 +153,18 @@ with col_izq:
     st.markdown("<div class='panel-izquierdo'>", unsafe_allow_html=True)
     st.markdown("<h3 style='color:#d4af37; font-size: 1.5rem;'>Flujo de Capital</h3>", unsafe_allow_html=True)
     
-    # Inputs vinculados a session_state
     ingreso_fijo_bruto = st.number_input("INGR. FIJO ($)", min_value=0.0, step=100.0, key="val_fijo")
     ingreso_var_bruto = st.number_input("INGR. VARIABLE ($)", min_value=0.0, step=100.0, key="val_var")
     
-    # Botón con Callback para reiniciar valores
     st.button("CONFIRMO QUE YA DEPOSITÉ TODO COMO DEBE SER", on_click=confirmar_deposito)
     
     st.divider()
     st.markdown("<p style='font-size:0.8rem; color:#888888; text-align:center;'>Diseñado para el futuro de Ilich & Mirssa</p>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Inyección de Animación y Sonido (Se ejecuta solo si mostrar_celebracion es True)
     if st.session_state.mostrar_celebracion:
         iconos = ['💸', '💵', '💰', '💶', '👑']
         animacion_html = ""
-        
-        # Generar 50 billetes cayendo con tiempos y posiciones aleatorias
         for _ in range(50):
             left = random.randint(0, 100)
             delay = random.uniform(0, 1.5)
@@ -191,14 +173,12 @@ with col_izq:
             icono = random.choice(iconos)
             animacion_html += f'<div class="dinero-cayendo" style="left: {left}%; font-size: {size}rem; animation-duration: {duration}s; animation-delay: {delay}s;">{icono}</div>'
         
-        # Audio autoplay (Campanita de Caja Registradora)
         animacion_html += """
         <audio autoplay style="display:none;">
             <source src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3" type="audio/mpeg">
         </audio>
         """
         st.markdown(animacion_html, unsafe_allow_html=True)
-        # Apagamos la animación para que no se repita en la siguiente interacción
         st.session_state.mostrar_celebracion = False
 
 with col_der:
@@ -249,7 +229,7 @@ with col_der:
     proyeccion = retiro_total * (((1 + (0.10/52))**(30 * 52)) - 1) / (0.10/52) if retiro_total > 0 else 0
 
     # ==========================================
-    # RENDERIZADO VISUAL DEL DASHBOARD
+    # RENDERIZADO VISUAL
     # ==========================================
     st.markdown("### RESUMEN SEMANAL")
     c1, c2, c3 = st.columns(3)
@@ -290,17 +270,24 @@ with col_der:
 
     c_trans, c_pie = st.columns([1, 1.2])
     with c_trans:
-        st.subheader("🏦 CLABEs (Copiables)")
-        transf = [
-            ("NU (Cajita/Gasto)", f_renta+v_renta+f_novia+v_novia+f_colchon+v_colchon+f_transp+v_transp),
-            ("GBM+ (Bolsa/Retiro)", f_retiro+v_retiro),
-            ("SPIN (Viajes/Ocio)", f_viajes+v_viajes)
+        st.subheader("🏦 Cuentas a Transferir")
+        
+        # Diccionario seguro e independiente para iterar TODAS las transferencias
+        transferencias_completas = [
+            ("CUENTA DIEZMO", diezmo_fijo + diezmo_var, "POR DEFINIR"),
+            ("NU (Renta, Transporte, Novia, Colchón)", f_renta + v_renta + f_transp + v_transp + f_novia + v_novia + f_colchon + v_colchon, "638180000126660124"),
+            ("SPIN (Viajes y Ocio)", f_viajes + v_viajes, "728969000033664690"),
+            ("GBM+ (Retiro e Inversión)", f_retiro + v_retiro, "601180400073884389"),
+            ("CETES (Emergencias)", f_emerg + v_emerg, "POR DEFINIR"),
+            ("PAGO DEUDA", f_deuda + v_deuda, "POR DEFINIR")
         ]
-        for banco, monto in transf:
+        
+        for banco, monto, clabe in transferencias_completas:
+            # Solo muestra el banco si hay dinero destinado a él
             if monto > 0:
                 st.markdown(f"<p style='color:#d4af37; font-weight:600; margin-bottom:2px;'>{banco}</p>", unsafe_allow_html=True)
                 st.markdown(f"<p style='font-size:1.1rem; margin-top:0px;'>Transferir: <b style='color:#00E676;'>${monto:,.2f}</b></p>", unsafe_allow_html=True)
-                st.code(CUENTAS.get(banco.split(" ")[0]), language=None)
+                st.code(clabe, language=None)
                 st.markdown("<br>", unsafe_allow_html=True)
 
     with c_pie:
