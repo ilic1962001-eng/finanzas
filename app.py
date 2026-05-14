@@ -94,8 +94,8 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # Renderizado de Títulos y Mensaje Élite
-st.markdown('<h1 class="app-title">MI VIDA MIRSSA</h1>', unsafe_allow_html=True)
-st.markdown('<p class="dedicatoria">"Porque cada peso bien administrado es un ladrillo más para nuestra mansión y cada ahorro una promesa de seguridad para nuestra vida juntos."</p>', unsafe_allow_html=True)
+st.markdown('<h1 class="app-title">Mi Por que</h1>', unsafe_allow_html=True)
+st.markdown('<p class="dedicatoria">"Porque cada peso bien administrado es un ladrillo más para nuestra rancho y cada ahorro una promesa de seguridad para nuestra vida juntos."</p>', unsafe_allow_html=True)
 
 # ==========================================
 # PARÁMETROS FINANCIEROS
