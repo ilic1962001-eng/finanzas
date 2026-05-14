@@ -62,18 +62,22 @@ logrado_fijo = f_renta + f_transp + f_novia + f_viajes
 faltante_inamov = max(0, meta_inamovibles - logrado_fijo)
 
 v_rescate = 0
-if faltante_inamov > 0 and var_neto > 0:
+var_disponible = var_neto
+
+if faltante_inamov > 0:
     st.warning(f"⚠️ El ingreso fijo no cubre los Inamovibles. Faltan **${faltante_inamov:,.2f}**.")
-    if st.checkbox("🔄 Aplicar rescate con Ingreso Variable"):
-        v_rescate = min(faltante_inamov, var_neto)
-        var_disponible = var_neto - v_rescate
-        st.success(f"✅ Rescate de ${v_rescate:,.2f} aplicado.")
+    
+    if var_neto > 0:
+        if st.checkbox("🔄 Aplicar rescate con Ingreso Variable"):
+            v_rescate = min(faltante_inamov, var_neto)
+            var_disponible = var_neto - v_rescate
+            st.success(f"✅ Rescate de ${v_rescate:,.2f} aplicado.")
     else:
-        var_disponible = var_neto
+        st.error("❌ No hay ingreso variable disponible para rescatar la quincena.")
+
 else:
     if ingreso_fijo_bruto > 0:
         st.success("✅ Ingreso Fijo suficiente para cubrir metas básicas.")
-    var_disponible = var_neto
 
 # REPARTO OBJETIVO DEL VARIABLE (50/30/20)
 v_deuda = v_emerg = v_colchon = v_retiro = v_reinversion = 0
@@ -86,7 +90,6 @@ if var_disponible > 0:
     v_retiro = v_ahorro_bolsa * 0.25
     v_colchon = v_ahorro_bolsa * 0.25
     v_deuda = v_deuda_extra
-
 # ==========================================
 # CONSTRUCCIÓN DEL DETALLE GRANULAR
 # ==========================================
