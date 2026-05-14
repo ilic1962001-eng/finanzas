@@ -3,16 +3,40 @@ import pandas as pd
 import plotly.express as px
 
 # ==========================================
-# CONFIGURACIÓN DE LA PÁGINA
+# CONFIGURACIÓN PREMIUM Y ESTILOS
 # ==========================================
 st.set_page_config(page_title="Dashboard Cascada Pro", layout="wide", page_icon="💧")
 
-# TÍTULO PERSONALIZADO: ROJO, MAYÚSCULAS Y ESTILIZADO
+# Inyección de CSS (Fondo Oscuro + Letras Blancas/Doradas + Título Rojo)
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800&display=swap');
+
+    /* Fondo general y Tipografía */
+    .stApp {
+        background-color: #000000;
+        color: #ffffff;
+        font-family: 'Montserrat', sans-serif;
+    }
+    
+    /* Forzar que el texto base sea blanco */
+    p, span, label, div, li {
+        color: #ffffff !important;
+    }
+
+    /* Subtítulos en Dorado */
+    h2, h3, h4, h5, h6 {
+        color: #d4af37 !important;
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+    
+    /* TÍTULO PERSONALIZADO (Ilich) */
     .titulo-personalizado {
-        color: #FF0000;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #FF0000 !important;
+        font-family: 'Montserrat', sans-serif;
         font-size: 42px;
         font-weight: 800;
         text-align: center;
@@ -20,35 +44,71 @@ st.markdown("""
         letter-spacing: 2px;
         padding-bottom: 20px;
     }
+    
+    /* Barra lateral */
+    [data-testid="stSidebar"] {
+        background-color: #0a0a0a;
+        border-right: 1px solid #d4af3733;
+    }
+    
+    /* Cajas de métricas */
+    [data-testid="stMetricValue"] {
+        color: #d4af37 !important;
+        font-size: 2.2rem !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stMetricLabel"] {
+        color: #ffffff !important;
+        font-size: 0.9rem !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    div[data-testid="metric-container"] {
+        background-color: #111111;
+        border: 1px solid #d4af3744;
+        padding: 20px;
+        border-radius: 4px;
+    }
+    
+    /* Estilo para los bloques de código (Copiado de CLABE) */
+    div.stCodeBlock {
+        background-color: #111111 !important;
+        border: 1px solid #d4af37 !important;
+        border-radius: 0px !important;
+    }
+    code {
+        color: #d4af37 !important;
+        font-size: 1.1rem !important;
+    }
+
+    /* Ajuste de Tablas para evitar letras negras */
+    .stDataFrame [data-testid="stTable"] {
+        background-color: #000000 !important;
+    }
     </style>
-    <h1 class="titulo-personalizado">¿CUÁNTO TE PAGARON ILICH?</h1>
     """, unsafe_allow_html=True)
 
+# Renderizado del Título Personalizado
+st.markdown('<h1 class="titulo-personalizado">¿CUÁNTO TE PAGARON ILICH?</h1>', unsafe_allow_html=True)
 st.markdown("---")
 
 # ==========================================
-# EL RESTO DE TU CÓDIGO (ENTRADA DE DATOS...)
-# ==========================================
-st.sidebar.header("💸 Ingresos de la Semana")
-# ... continúa el código anterior
-# ==========================================
 # CONSTANTES Y CLABES
 # ==========================================
-# Configuración de Porcentajes
 DIEZMO_PCT = 0.10
 GASTO_PCT = 0.65
 DEUDA_PCT = 0.10
 AHORRO_PCT = 0.10
 INVERSION_PCT = 0.15
 
-# Metas Inamovibles Hardcoded
+# Metas Mínimas Inamovibles
 META_RENTA = 875.0
 META_TRANSPORTE = 430.0
 META_NOVIA = 500.0
 META_VIAJES = 300.0
 meta_inamovibles_total = META_RENTA + META_TRANSPORTE + META_NOVIA + META_VIAJES
 
-# 🏦 TUS CLABES REALES
+# 🏦 CLABES REALES
 CUENTAS = {
     "NU (Cajita)": "638180000126660124",
     "NU (Gasto)": "638180000126660124",
@@ -63,7 +123,7 @@ CUENTAS = {
 # SIDEBAR
 # ==========================================
 with st.sidebar:
-    st.markdown("<h3 style='color:#d4af37;'>Capital Semanal</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color:#d4af37;'>Ingresos de la Semana</h3>", unsafe_allow_html=True)
     ingreso_fijo_bruto = st.number_input("FIJO ($)", min_value=0.0, value=0.0, step=100.0)
     ingreso_var_bruto = st.number_input("VARIABLE ($)", min_value=0.0, value=0.0, step=100.0)
 
@@ -76,7 +136,6 @@ fijo_neto = ingreso_fijo_bruto - diezmo_fijo
 diezmo_var = ingreso_var_bruto * DIEZMO_PCT
 var_neto = ingreso_var_bruto - diezmo_var
 
-# Inicialización
 f_renta = f_transp = f_novia = f_viajes = f_deuda = f_emerg = f_colchon = f_retiro = 0
 v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_retiro = 0
 
@@ -85,11 +144,13 @@ capacidad_gasto_fijo = fijo_neto * GASTO_PCT
 if capacidad_gasto_fijo >= meta_inamovibles_total:
     p_renta, p_transp = META_RENTA/meta_inamovibles_total, META_TRANSPORTE/meta_inamovibles_total
     p_novia, p_viajes = META_NOVIA/meta_inamovibles_total, META_VIAJES/meta_inamovibles_total
+    
     f_renta, f_transp = capacidad_gasto_fijo*p_renta, capacidad_gasto_fijo*p_transp
     f_novia, f_viajes = capacidad_gasto_fijo*p_novia, capacidad_gasto_fijo*p_viajes
+    
     f_deuda, f_retiro = fijo_neto*DEUDA_PCT, fijo_neto*INVERSION_PCT
     f_emerg, f_colchon = (fijo_neto*AHORRO_PCT)*0.5, (fijo_neto*AHORRO_PCT)*0.5
-    modo_actual = "Crecimiento"
+    modo_actual = "Crecimiento Desbloqueado 🚀"
 else:
     f_aux = fijo_neto
     f_renta = min(f_aux, META_RENTA); f_aux -= f_renta
@@ -100,9 +161,9 @@ else:
     f_emerg = min(f_aux, 250.0); f_aux -= f_emerg
     f_colchon = min(f_aux, 250.0); f_aux -= f_colchon
     f_retiro = f_aux
-    modo_actual = "Cascada"
+    modo_actual = "Cascada (Rescatando) ⚠️"
 
-# Distribución VARIABLE (Rescate + 50/30/20)
+# Distribución VARIABLE
 v_aux = var_neto
 v_renta = min(v_aux, max(0, META_RENTA - f_renta)); v_aux -= v_renta
 v_transp = min(v_aux, max(0, META_TRANSPORTE - f_transp)); v_aux -= v_transp
@@ -114,7 +175,7 @@ if v_aux > 0:
     v_deuda, v_retiro = v_aux * 0.30, v_aux * 0.20
     v_emerg, v_colchon = v_ahorro_t * 0.50, v_ahorro_t * 0.50
 
-# Dataframe
+# Dataframe y Cálculo de Profit
 data = [
     {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Meta": 0, "Fijo": diezmo_fijo, "Variable": diezmo_var},
     {"Concepto": "Renta", "Plataforma": "NU (Cajita)", "Meta": META_RENTA, "Fijo": f_renta, "Variable": v_renta},
@@ -128,6 +189,7 @@ data = [
 ]
 df = pd.DataFrame(data)
 df["Total"] = df["Fijo"] + df["Variable"]
+# Profit = Lo que excedió la meta mínima
 df["Profit"] = df.apply(lambda x: max(0, x["Total"] - x["Meta"]) if x["Meta"] > 0 else 0, axis=1)
 
 # ==========================================
@@ -136,26 +198,48 @@ df["Profit"] = df.apply(lambda x: max(0, x["Total"] - x["Meta"]) if x["Meta"] > 
 m1, m2, m3 = st.columns(3)
 with m1: st.metric("NETO SEMANAL", f"${(fijo_neto + var_neto):,.2f}")
 with m2: st.metric("SISTEMA", modo_actual)
-with m3: st.metric("PROFIT GENERADO", f"${df['Profit'].sum():,.2f}")
+with m3: 
+    total_profit = df['Profit'].sum()
+    # Si hay profit, forzamos que se vea verde en la métrica superior también
+    if total_profit > 0:
+        st.markdown(f"""
+            <div data-testid='metric-container'>
+                <label data-testid='stMetricLabel'>PROFIT GENERADO (EXCEDENTE)</label>
+                <div data-testid='stMetricValue' style='color: #00E676 !important;'>${total_profit:,.2f}</div>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.metric("PROFIT GENERADO (EXCEDENTE)", f"${total_profit:,.2f}")
 
 st.markdown("---")
 
-# Tabla con Estilo Dorado Forzado y Letras Blancas
+# --- TABLA CON ESTILOS CONDICIONALES ---
 st.subheader("Desglose de Capital")
-def style_table(val):
-    if isinstance(val, (int, float)) and val > 0: return 'color: #d4af37'
+
+# Funciones de estilo para Pandas
+def format_general(val):
+    if isinstance(val, (int, float)) and val > 0: return 'color: #d4af37' # Dorado para números
+    return 'color: #ffffff' # Blanco para texto y ceros
+
+def format_profit(val):
+    if isinstance(val, (int, float)) and val > 0: 
+        return 'color: #00E676; font-weight: bold;' # Verde neón brillante para Profit
     return 'color: #ffffff'
 
-st.dataframe(
-    df.style.format({"Meta": "${:,.2f}", "Fijo": "${:,.2f}", "Variable": "${:,.2f}", "Total": "${:,.2f}", "Profit": "${:,.2f}"})
-    .map(style_table, subset=["Profit"])
-    .set_properties(**{'background-color': '#000000', 'color': '#ffffff', 'border-color': '#d4af3722'}),
-    use_container_width=True, hide_index=True
-)
+# Aplicamos los estilos
+styled_df = df.style.format({
+    "Meta": "${:,.2f}", "Fijo": "${:,.2f}", "Variable": "${:,.2f}", 
+    "Total": "${:,.2f}", "Profit": "${:,.2f}"
+})\
+.map(format_general, subset=["Meta", "Fijo", "Variable", "Total"])\
+.map(format_profit, subset=["Profit"])\
+.set_properties(**{'background-color': '#000000', 'color': '#ffffff', 'border-color': '#d4af3722'})
+
+st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
-# Transferencias y Gráfico
+# --- TRANSFERENCIAS (CLABES COPIABLES) ---
 c1, c_esp, c2 = st.columns([1, 0.1, 1.2])
 
 with c1:
@@ -169,7 +253,7 @@ with c1:
         clabe_nuda = CUENTAS.get(banco, "PENDIENTE")
         
         st.markdown(f"<p style='margin-bottom:0px; font-weight:600; color:#d4af37;'>{banco}</p>", unsafe_allow_html=True)
-        st.markdown(f"<p style='font-size:1.2rem; margin-top:0px;'>Total: <b>${monto:,.2f}</b></p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='font-size:1.2rem; margin-top:0px;'>Total: <b style='color:#00E676;'>${monto:,.2f}</b></p>", unsafe_allow_html=True)
         # ÚNICAMENTE LA CLABE ES COPIABLE
         st.code(clabe_nuda, language=None)
         st.markdown("<br>", unsafe_allow_html=True)
@@ -177,7 +261,7 @@ with c1:
 with c2:
     st.subheader("Distribución Visual")
     fig = px.pie(df_bancos, values='Total', names='Plataforma', hole=0.7,
-                 color_discrete_sequence=['#d4af37', '#ffffff', '#444444', '#888888'])
+                 color_discrete_sequence=['#d4af37', '#ffffff', '#444444', '#888888', '#00E676'])
     fig.update_layout(
         template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)', font=dict(family="Montserrat", color="#ffffff")
