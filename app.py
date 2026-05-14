@@ -7,16 +7,19 @@ import plotly.express as px
 # ==========================================
 st.set_page_config(page_title="Mi vida Mirssa", layout="wide", page_icon="👑")
 
-# Función para reiniciar los valores
-def reiniciar_valores():
+# Función para reiniciar los valores y activar la celebración
+def confirmar_transferencia():
     st.session_state.ingreso_fijo = 0.0
     st.session_state.ingreso_var = 0.0
+    st.session_state.celebrar = True
 
 # Inicializar estados si no existen
 if 'ingreso_fijo' not in st.session_state:
     st.session_state.ingreso_fijo = 0.0
 if 'ingreso_var' not in st.session_state:
     st.session_state.ingreso_var = 0.0
+if 'celebrar' not in st.session_state:
+    st.session_state.celebrar = False
 
 st.markdown("""
     <style>
@@ -99,6 +102,12 @@ st.markdown("""
         height: 3em !important;
         text-transform: uppercase;
         letter-spacing: 2px;
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        background-color: #00E676 !important;
+        color: #000000 !important;
+        transform: scale(1.02);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -242,7 +251,52 @@ with c_pie:
     st.plotly_chart(fig, use_container_width=True)
 
 # ==========================================
-# SECCIÓN DE CONFIRMACIÓN (FINAL)
+# SECCIÓN DE CONFIRMACIÓN Y CELEBRACIÓN
 # ==========================================
 st.markdown("---")
-st.button("Confirmo que ya transferí todo", on_click=reiniciar_valores)
+st.button("Confirmo que ya transferí todo", on_click=confirmar_transferencia)
+
+# Ejecutar la celebración si el flag es True
+if st.session_state.celebrar:
+    st.markdown("""
+    <style>
+    .billete {
+        position: fixed;
+        top: -10%;
+        z-index: 9999;
+        user-select: none;
+        cursor: default;
+        animation-name: fall, sway;
+        animation-duration: 3s, 3s;
+        animation-timing-function: linear, ease-in-out;
+        animation-iteration-count: 1, 1;
+        font-size: 3rem;
+    }
+    @keyframes fall {
+        0% { top: -10%; }
+        100% { top: 110%; }
+    }
+    @keyframes sway {
+        0% { transform: translateX(0px) rotate(0deg); }
+        50% { transform: translateX(50px) rotate(45deg); }
+        100% { transform: translateX(-50px) rotate(-45deg); }
+    }
+    </style>
+    
+    <div class="billete" style="left: 10%; animation-delay: 0s;">💸</div>
+    <div class="billete" style="left: 20%; animation-delay: 0.2s;">💵</div>
+    <div class="billete" style="left: 30%; animation-delay: 0.4s;">💰</div>
+    <div class="billete" style="left: 40%; animation-delay: 0.1s;">💸</div>
+    <div class="billete" style="left: 50%; animation-delay: 0.5s;">💵</div>
+    <div class="billete" style="left: 60%; animation-delay: 0.3s;">💰</div>
+    <div class="billete" style="left: 70%; animation-delay: 0.1s;">💸</div>
+    <div class="billete" style="left: 80%; animation-delay: 0.4s;">💵</div>
+    <div class="billete" style="left: 90%; animation-delay: 0.2s;">💰</div>
+
+    <audio autoplay>
+        <source src="https://actions.google.com/sounds/v1/foley/cash_register.ogg" type="audio/ogg">
+    </audio>
+    """, unsafe_allow_html=True)
+    
+    # Reiniciar el flag para que no se repita en la siguiente interacción
+    st.session_state.celebrar = False
