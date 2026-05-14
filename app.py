@@ -19,40 +19,27 @@ ingreso_var_bruto = st.sidebar.number_input("Ingreso VARIABLE Semanal ($)", min_
 
 st.sidebar.markdown("---")
 st.sidebar.header("🎯 Metas de la Cascada")
-st.sidebar.caption("Prioridad 1 a 7. El ingreso fijo llena estas cubetas en orden.")
+st.sidebar.caption("Gastos inamovibles. El ingreso fijo llena estas cubetas en este orden.")
 
-meta_renta = st.sidebar.number_input("1. Renta (Meta: 3500/mes)", value=875.0, step=25.0)
-meta_transporte = st.sidebar.number_input("2. Transporte", value=430.0, step=25.0) # <--- ACTUALIZADO A 430
-meta_novia = st.sidebar.number_input("3. Novia", value=500.0, step=25.0)
-meta_viajes = st.sidebar.number_input("4. Viajes/Visitas", value=300.0, step=25.0)
-meta_deuda = st.sidebar.number_input("5. Deuda", value=400.0, step=25.0)
-meta_emergencias = st.sidebar.number_input("6. Emergencias (CETES)", value=250.0, step=25.0)
-meta_colchon = st.sidebar.number_input("7. Colchón", value=250.0, step=25.0)
-
+# Valores fijos (ya no son inputs editables)
+meta_renta = 875.0
+meta_transporte = 430.0
+meta_novia = 500.0
+meta_viajes = 300.0
+meta_deuda = 400.0
+meta_emergencias = 250.0
+meta_colchon = 250.0
 diezmo_pct = 0.10
 
-# ==========================================
-# LÓGICA DE RESCATE (INGRESO VARIABLE)
-# ==========================================
-# Ahora el faltante es la suma de lo que NO se pudo cubrir de las 4 metas base
-faltante_inamov = (meta_renta - f_renta) + \
-                  (meta_transporte - f_transp) + \
-                  (meta_novia - f_novia) + \
-                  (meta_viajes - f_viajes)
+# Mostrar los valores fijos en la UI como solo lectura
+st.sidebar.text(f"1. Renta: ${meta_renta:,.2f}")
+st.sidebar.text(f"2. Transporte: ${meta_transporte:,.2f}")
+st.sidebar.text(f"3. Novia: ${meta_novia:,.2f}")
+st.sidebar.text(f"4. Viajes/Visitas: ${meta_viajes:,.2f}")
+st.sidebar.text(f"5. Deuda: ${meta_deuda:,.2f}")
+st.sidebar.text(f"6. Emergencias: ${meta_emergencias:,.2f}")
+st.sidebar.text(f"7. Colchón: ${meta_colchon:,.2f}")
 
-v_rescate = 0
-var_disponible = var_neto
-
-if faltante_inamov > 0:
-    st.warning(f"⚠️ DÉFICIT DETECTADO: Faltan **${faltante_inamov:,.2f}** para cubrir los gastos inamovibles.")
-    
-    if var_neto > 0:
-        # El rescate ahora es mandatorio o sugerido para completar los límites
-        v_rescate = min(faltante_inamov, var_neto)
-        var_disponible = var_neto - v_rescate
-        st.success(f"✅ Se han tomado ${v_rescate:,.2f} del ingreso variable para completar los inamovibles.")
-    else:
-        st.error("❌ ALERTA: No hay suficiente ingreso (Fijo + Variable) para cubrir los gastos básicos.")
 # ==========================================
 # PROCESAMIENTO DE FONDOS Y DIEZMO
 # ==========================================
@@ -79,6 +66,7 @@ f_retiro = max(0, f_aux)
 # ==========================================
 # LÓGICA DE RESCATE (INGRESO VARIABLE)
 # ==========================================
+# Evaluamos cuánto faltó de los 4 inamovibles principales
 meta_inamovibles = meta_renta + meta_transporte + meta_novia + meta_viajes
 logrado_fijo = f_renta + f_transp + f_novia + f_viajes
 faltante_inamov = max(0, meta_inamovibles - logrado_fijo)
@@ -87,16 +75,15 @@ v_rescate = 0
 var_disponible = var_neto
 
 if faltante_inamov > 0:
-    st.warning(f"⚠️ El ingreso fijo no cubre los Inamovibles. Faltan **${faltante_inamov:,.2f}**.")
+    st.warning(f"⚠️ DÉFICIT DETECTADO: Faltan **${faltante_inamov:,.2f}** para cubrir los gastos inamovibles base.")
     
     if var_neto > 0:
-        if st.checkbox("🔄 Aplicar rescate con Ingreso Variable"):
-            v_rescate = min(faltante_inamov, var_neto)
-            var_disponible = var_neto - v_rescate
-            st.success(f"✅ Rescate de ${v_rescate:,.2f} aplicado.")
+        # Rescate automático si hay fondos variables
+        v_rescate = min(faltante_inamov, var_neto)
+        var_disponible = var_neto - v_rescate
+        st.success(f"✅ Se han tomado **${v_rescate:,.2f}** del ingreso variable para completar los inamovibles.")
     else:
-        st.error("❌ No hay ingreso variable disponible para rescatar la quincena.")
-
+        st.error("❌ ALERTA: No hay suficiente ingreso (Fijo + Variable) para cubrir los gastos básicos.")
 else:
     if ingreso_fijo_bruto > 0:
         st.success("✅ Ingreso Fijo suficiente para cubrir metas básicas.")
@@ -112,6 +99,7 @@ if var_disponible > 0:
     v_retiro = v_ahorro_bolsa * 0.25
     v_colchon = v_ahorro_bolsa * 0.25
     v_deuda = v_deuda_extra
+
 # ==========================================
 # CONSTRUCCIÓN DEL DETALLE GRANULAR
 # ==========================================
@@ -151,7 +139,7 @@ col_g1, col_g2 = st.columns(2)
 with col_g1:
     st.write("**💧 Llenado de Cascada (Real)**")
     df_bar = pd.DataFrame({
-        'Cubeta': df_detalles['Concepto'][1:], # Excluimos Diezmo del gráfico de cascada
+        'Cubeta': df_detalles['Concepto'][1:], # Excluimos Diezmo
         'Nivel Real': df_detalles['Total'][1:],
         'Meta': [meta_renta, meta_transporte, meta_novia, meta_viajes, meta_deuda, meta_emergencias, meta_colchon, 0]
     }).iloc[:-1] # Excluimos retiro para la gráfica de metas
@@ -193,7 +181,7 @@ formato_moneda = {"Fijo": "${:,.2f}", "Variable": "${:,.2f}", "Total": "${:,.2f}
 st.dataframe(df_detalles.style.format(formato_moneda), use_container_width=True)
 
 # ==========================================
-# AUDITORÍA DE MATLAB (CORREGIDA COMPLETA Y CON COLORES)
+# AUDITORÍA DE MATLAB
 # ==========================================
 with st.expander("⚖️ Auditoría: Comparativa vs Plan MATLAB"):
     f_neto = fijo_neto
@@ -203,7 +191,7 @@ with st.expander("⚖️ Auditoría: Comparativa vs Plan MATLAB"):
     obj_transp = meta_transporte
     obj_novia = meta_novia
     
-    # Todo lo demás se reparte como estaba
+    # Todo lo demás se reparte
     obj_viajes = (f_neto * 0.75) * 0.13 if f_neto > 0 else 0
     obj_deuda_matlab = f_neto * 0.10 if f_neto > 0 else 0
     obj_ahorro_matlab = f_neto * 0.10 if f_neto > 0 else 0
@@ -226,5 +214,4 @@ with st.expander("⚖️ Auditoría: Comparativa vs Plan MATLAB"):
     
     formato_auditoria = {"Plan MATLAB (Fijo)": "${:,.2f}", "Cascada Real (Fijo)": "${:,.2f}", "Diferencia": "${:,.2f}"}
     
-    # Usamos st.dataframe para que soporte los colores
     st.dataframe(df_auditoria.style.format(formato_auditoria).map(color_diferencia, subset=['Diferencia']), use_container_width=True)
