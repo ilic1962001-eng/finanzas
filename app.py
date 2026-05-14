@@ -34,8 +34,8 @@ diezmo_pct = 0.10
 # ==========================================
 # PROCESAMIENTO DE FONDOS
 # ==========================================
-fijo_neto = ingreso_fijo_bruto * (1 - diezmo_pct)
-var_neto = ingreso_var_bruto * (1 - diezmo_pct)
+fijo_neto = ingreso_fijo_bruto * (1 - diezmo_pct) if ingreso_fijo_bruto > 0 else 0
+var_neto = ingreso_var_bruto * (1 - diezmo_pct) if ingreso_var_bruto > 0 else 0
 
 # Cálculos de Objetivo (Fórmulas MATLAB originales para la Auditoría)
 obj_renta = (fijo_neto * 0.75) * 0.45
@@ -83,7 +83,8 @@ if faltante_inamov > 0:
     else:
         var_disponible = 0
 else:
-    st.success("✅ Ingreso Fijo suficiente para cubrir metas básicas.")
+    if ingreso_fijo_bruto > 0:
+        st.success("✅ Ingreso Fijo suficiente para cubrir metas básicas.")
     var_disponible = var_neto
 
 # Repartición del Variable sobrante (50/30/20)
@@ -113,11 +114,13 @@ def color_diff(val):
     color = 'green' if val > 0 else 'red'
     return f'color: {color}; font-weight: bold'
 
-st.dataframe(df_auditoria.style.format("${:,.2f}").map(color_diff, subset=['Ahorro Generado']), use_container_width=True)
+# AQUÍ ESTÁ LA CORRECCIÓN DEL ERROR DE PANDAS
+formato_columnas = {"Ideal (MATLAB)": "${:,.2f}", "Meta Cascada": "${:,.2f}", "Ahorro Generado": "${:,.2f}"}
+st.dataframe(df_auditoria.style.format(formato_columnas).map(color_diff, subset=['Ahorro Generado']), use_container_width=True)
 
 ahorro_total = df_auditoria["Ahorro Generado"].sum()
-if ahorro_total > 0:
-    st.info(f"✨ Al reducir metas en cubetas bajas, liberaste **${ahorro_total:,.2f}** que están fluyendo hacia tus prioridades o inversiones.")
+if ahorro_total > 0 and ingreso_fijo_bruto > 0:
+    st.info(f"✨ Al reducir metas en cubetas bajas o ser más eficiente, liberaste **${ahorro_total:,.2f}** que fluyen a tus prioridades o inversiones.")
 
 # ==========================================
 # TRANSFERENCIAS FINALES (DESGLOSADAS)
@@ -149,11 +152,13 @@ df_final = pd.DataFrame({
     "Plataforma": ["NU (Gastos/Colchón)", "CETES", "GBM+", "SPIN", "Deuda"],
     "Monto Total": [nu_total, cetes_total, gbm_total, spin_total, f_deuda + v_deuda],
     "Desde Fijo": [nu_fijo, cetes_fijo, gbm_fijo, spin_fijo, f_deuda],
-    "Desde Variable": [nu_var, cetes_var, v_var := v_retiro + v_reinversion, 0, v_deuda],
+    "Desde Variable": [nu_var, cetes_var, gbm_var, 0, v_deuda],
     "CLABE / App": ["638180000126660124", "App Cetes", "601180400073884389", "728969000033664690", "N/A"]
 })
 
-st.table(df_final.style.format({"Monto Total": "${:,.2f}", "Desde Fijo": "${:,.2f}", "Desde Variable": "${:,.2f}"}))
+# Formato específico para la tabla final
+formato_final = {"Monto Total": "${:,.2f}", "Desde Fijo": "${:,.2f}", "Desde Variable": "${:,.2f}"}
+st.table(df_final.style.format(formato_final))
 
 # ==========================================
 # VISUALIZACIÓN
@@ -165,11 +170,9 @@ with col_g1:
     st.write("**💧 Llenado de Cascada**")
     df_bar = pd.DataFrame({
         'Cubeta': ['Renta', 'Transp', 'Novia', 'Viajes', 'Deuda', 'Emerg', 'Colchón'],
-        'Nivel Real': [f_renta+v_rescate if i==0 else f_renta+v_rescate for i,v in enumerate([f_renta, f_transp, f_novia, f_viajes, f_deuda, f_emerg, f_colchon])], # Simplificado para visualización
+        'Nivel Real': [f_renta + v_rescate, f_transp, f_novia, f_viajes, f_deuda, f_emerg, f_colchon],
         'Meta': [meta_renta, meta_transporte, meta_novia, meta_viajes, meta_deuda, meta_emergencias, meta_colchon]
     })
-    # Ajuste de datos reales para el gráfico
-    df_bar['Nivel Real'] = [f_renta + v_rescate, f_transp, f_novia, f_viajes, f_deuda, f_emerg, f_colchon]
     
     fig = px.bar(df_bar, x='Cubeta', y=['Meta', 'Nivel Real'], barmode='overlay', color_discrete_sequence=['#e5e5e5', '#00CC96'])
     st.plotly_chart(fig, use_container_width=True)
@@ -178,6 +181,9 @@ with col_g2:
     st.write("**📈 Composición del Ahorro Total**")
     df_pie = pd.DataFrame({
         'Origen': ['Fondo Emergencia', 'Inversión GBM', 'Colchón NU'],
-        'Monto': [cetes_total, gbm_total, colchon_total]
+        'Monto': [cetes_total, gbm_total, f_colchon + v_colchon]
     })
-    st.plotly_chart(px.pie(df_pie, values='Monto', names='Origen', hole=0.4), use_container_width=True)
+    if cetes_total + gbm_total + f_colchon + v_colchon > 0:
+        st.plotly_chart(px.pie(df_pie, values='Monto', names='Origen', hole=0.4), use_container_width=True)
+    else:
+        st.info("Ingresa montos para visualizar tu ahorro.")
