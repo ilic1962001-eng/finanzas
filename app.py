@@ -9,24 +9,27 @@ st.set_page_config(page_title="Dashboard Cascada Pro", layout="wide", page_icon=
 
 st.title("📊 Control Financiero: Cascada y Origen de Fondos")
 st.markdown("---")
+
 # ==========================================
-# EJECUCIÓN DE LA CASCADA (SÓLO INGRESO FIJO)
+# ENTRADA DE DATOS (Barra lateral)
 # ==========================================
-# 1. ASIGNACIÓN INAMOVIBLE: Se asignan las metas completas primero
-# para identificar el déficit real antes de pasar a ahorro/deuda.
+st.sidebar.header("💸 Ingresos de la Semana")
+ingreso_fijo_bruto = st.sidebar.number_input("Ingreso FIJO Semanal ($)", min_value=0.0, value=0.0, step=100.0)
+ingreso_var_bruto = st.sidebar.number_input("Ingreso VARIABLE Semanal ($)", min_value=0.0, value=0.0, step=100.0)
 
-f_renta = min(fijo_neto, meta_renta)
-f_transp = min(max(0, fijo_neto - meta_renta), meta_transporte)
-f_novia = min(max(0, fijo_neto - (meta_renta + meta_transporte)), meta_novia)
-f_viajes = min(max(0, fijo_neto - (meta_renta + meta_transporte + meta_novia)), meta_viajes)
+st.sidebar.markdown("---")
+st.sidebar.header("🎯 Metas de la Cascada")
+st.sidebar.caption("Prioridad 1 a 7. El ingreso fijo llena estas cubetas en orden.")
 
-# Cálculo de remanente después de inamovibles para las cubetas flexibles
-f_remanente = max(0, fijo_neto - (meta_renta + meta_transporte + meta_novia + meta_viajes))
+meta_renta = st.sidebar.number_input("1. Renta (Meta: 3500/mes)", value=875.0, step=25.0)
+meta_transporte = st.sidebar.number_input("2. Transporte", value=430.0, step=25.0) # <--- ACTUALIZADO A 430
+meta_novia = st.sidebar.number_input("3. Novia", value=500.0, step=25.0)
+meta_viajes = st.sidebar.number_input("4. Viajes/Visitas", value=300.0, step=25.0)
+meta_deuda = st.sidebar.number_input("5. Deuda", value=400.0, step=25.0)
+meta_emergencias = st.sidebar.number_input("6. Emergencias (CETES)", value=250.0, step=25.0)
+meta_colchon = st.sidebar.number_input("7. Colchón", value=250.0, step=25.0)
 
-f_deuda = min(f_remanente, meta_deuda); f_remanente -= f_deuda
-f_emerg = min(f_remanente, meta_emergencias); f_remanente -= f_emerg
-f_colchon = min(f_remanente, meta_colchon); f_remanente -= f_colchon
-f_retiro = f_remanente # Lo que sobra de lo fijo va a retiro
+diezmo_pct = 0.10
 
 # ==========================================
 # LÓGICA DE RESCATE (INGRESO VARIABLE)
