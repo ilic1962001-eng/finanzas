@@ -84,7 +84,7 @@ diezmo_var = ingreso_var_bruto * DIEZMO_PCT; var_neto = ingreso_var_bruto - diez
 f_renta = f_transp = f_novia = f_viajes = f_deuda = f_emerg = f_colchon = f_retiro = 0
 v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_retiro = 0
 
-# Distribución FIJA
+# 1. Distribución FIJA
 capacidad_gasto_fijo = fijo_neto * GASTO_PCT
 if capacidad_gasto_fijo >= meta_inamovibles_total:
     p_renta, p_transp = META_RENTA/meta_inamovibles_total, META_TRANSPORTE/meta_inamovibles_total
@@ -104,43 +104,42 @@ else:
     f_colchon = min(f_aux, 250.0); f_aux -= f_colchon
     f_retiro = f_aux
 
-# Distribución VARIABLE (Rescate)
+# 2. Distribución VARIABLE (Rescate)
 v_aux = var_neto
 v_renta = min(v_aux, max(0, META_RENTA - f_renta)); v_aux -= v_renta
 v_transp = min(v_aux, max(0, META_TRANSPORTE - f_transp)); v_aux -= v_transp
 v_novia = min(v_aux, max(0, META_NOVIA - f_novia)); v_aux -= v_novia
 v_viajes = min(v_aux, max(0, META_VIAJES - f_viajes)); v_aux -= v_viajes
 
-# Excedente Variable
+# 3. Excedente Variable (50/30/20)
 if v_aux > 0:
     v_ahorro_t = v_aux * 0.50
     v_deuda, v_retiro = v_aux * 0.30, v_aux * 0.20
     v_emerg, v_colchon = v_ahorro_t * 0.50, v_ahorro_t * 0.50
 
-# Cálculos de Métricas
+# 4. Cálculos de Métricas Superiores
 rescate_total = v_renta + v_transp + v_novia + v_viajes
 texto_rescate = f"{(rescate_total / var_neto) * 100:.1f}%" if var_neto > 0 and rescate_total > 0 else "Nada"
 
 asignado_basicos = f_renta + v_renta + f_transp + v_transp + f_novia + v_novia + f_viajes + v_viajes
 deficit_basico = meta_inamovibles_total - asignado_basicos
 
-# Creación de DataFrame simplificado
+# 5. Creación de DataFrame (Con Fijo, Variable y FIT)
 data = [
-    {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Meta": 0, "Asignado": diezmo_fijo + diezmo_var},
-    {"Concepto": "Renta", "Plataforma": "NU (Cajita)", "Meta": META_RENTA, "Asignado": f_renta + v_renta},
-    {"Concepto": "Transporte", "Plataforma": "NU (Gasto)", "Meta": META_TRANSPORTE, "Asignado": f_transp + v_transp},
-    {"Concepto": "Novia", "Plataforma": "NU (Gasto)", "Meta": META_NOVIA, "Asignado": f_novia + v_novia},
-    {"Concepto": "Viajes/Visitas", "Plataforma": "SPIN", "Meta": META_VIAJES, "Asignado": f_viajes + v_viajes},
-    {"Concepto": "Deuda", "Plataforma": "Pago Deuda", "Meta": 0, "Asignado": f_deuda + v_deuda},
-    {"Concepto": "Emergencias", "Plataforma": "CETES", "Meta": 0, "Asignado": f_emerg + v_emerg},
-    {"Concepto": "Colchón", "Plataforma": "NU (Cajita)", "Meta": 0, "Asignado": f_colchon + v_colchon},
-    {"Concepto": "Retiro/Bolsa", "Plataforma": "GBM+", "Meta": 0, "Asignado": f_retiro + v_retiro},
+    {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Meta": 0, "Fijo": diezmo_fijo, "Variable": diezmo_var, "Asignado": diezmo_fijo + diezmo_var},
+    {"Concepto": "Renta", "Plataforma": "NU (Cajita)", "Meta": META_RENTA, "Fijo": f_renta, "Variable": v_renta, "Asignado": f_renta + v_renta},
+    {"Concepto": "Transporte", "Plataforma": "NU (Gasto)", "Meta": META_TRANSPORTE, "Fijo": f_transp, "Variable": v_transp, "Asignado": f_transp + v_transp},
+    {"Concepto": "Novia", "Plataforma": "NU (Gasto)", "Meta": META_NOVIA, "Fijo": f_novia, "Variable": v_novia, "Asignado": f_novia + v_novia},
+    {"Concepto": "Viajes/Visitas", "Plataforma": "SPIN", "Meta": META_VIAJES, "Fijo": f_viajes, "Variable": v_viajes, "Asignado": f_viajes + v_viajes},
+    {"Concepto": "Deuda", "Plataforma": "Pago Deuda", "Meta": 0, "Fijo": f_deuda, "Variable": v_deuda, "Asignado": f_deuda + v_deuda},
+    {"Concepto": "Emergencias", "Plataforma": "CETES", "Meta": 0, "Fijo": f_emerg, "Variable": v_emerg, "Asignado": f_emerg + v_emerg},
+    {"Concepto": "Colchón", "Plataforma": "NU (Cajita)", "Meta": 0, "Fijo": f_colchon, "Variable": v_colchon, "Asignado": f_colchon + v_colchon},
+    {"Concepto": "Retiro/Bolsa", "Plataforma": "GBM+", "Meta": 0, "Fijo": f_retiro, "Variable": v_retiro, "Asignado": f_retiro + v_retiro},
 ]
 df = pd.DataFrame(data)
 
-# Nueva lógica de Faltante y Excedente
-df["Faltante"] = df.apply(lambda x: max(0, x["Meta"] - x["Asignado"]) if x["Meta"] > 0 else 0, axis=1)
-df["Excedente"] = df.apply(lambda x: max(0, x["Asignado"] - x["Meta"]) if x["Meta"] > 0 else 0, axis=1)
+# COLUMNA FIT: Si tiene Meta inamovible, Fit = Asignado - Meta. Si Meta es 0 (ej. Deuda, Retiro), Fit = Todo lo asignado.
+df["Fit"] = df.apply(lambda x: x["Asignado"] - x["Meta"] if x["Meta"] > 0 else x["Asignado"], axis=1)
 
 # ==========================================
 # CÁLCULOS SUPERIORES (S&P 500)
@@ -175,7 +174,9 @@ m1, m2, m3 = st.columns(3)
 with m1: st.metric("NETO SEMANAL", f"${(fijo_neto + var_neto):,.2f}")
 with m2: st.metric("% VAR. USADO EN RESCATE", texto_rescate)
 with m3: 
-    total_profit = df['Excedente'].sum()
+    # Calculamos el excedente total general sumando los Fit positivos de los inamovibles
+    excedente_inamovibles = sum([row["Fit"] for _, row in df.iterrows() if row["Meta"] > 0 and row["Fit"] > 0])
+    
     if deficit_basico > 0.01:
         st.markdown(f"""
             <div data-testid='metric-container' style='border-color: #FF000044;'>
@@ -184,36 +185,42 @@ with m3:
             </div>
         """, unsafe_allow_html=True)
     else:
-        color_profit = "#00E676" if total_profit > 0 else "#ffffff"
+        color_profit = "#00E676" if excedente_inamovibles > 0 else "#ffffff"
         st.markdown(f"""
             <div data-testid='metric-container'>
-                <label data-testid='stMetricLabel'>PROFIT GENERADO (EXCEDENTE)</label>
-                <div data-testid='stMetricValue' style='color: {color_profit} !important;'>${total_profit:,.2f}</div>
+                <label data-testid='stMetricLabel'>PROFIT GENERADO EN SOBRES</label>
+                <div data-testid='stMetricValue' style='color: {color_profit} !important;'>${excedente_inamovibles:,.2f}</div>
             </div>
         """, unsafe_allow_html=True)
 
 st.markdown("---")
 
-# --- TABLA DESGLOSE DE CAPITAL SIMPLIFICADA ---
+# --- TABLA DESGLOSE DE CAPITAL (FIT LÓGICO Y COLORES SEGUROS) ---
 st.subheader("Desglose de Capital")
 
-def pintar_excedente(s):
-    return ['color: #00E676 !important; font-weight: bold;' if v > 0 else 'color: #ffffff;' for v in s]
+# Lógica de coloreado por fila evaluando los números CRUDOS (antes de volverse texto)
+def colorear_tabla(row):
+    styles = ['color: #ffffff;'] * len(row)
+    for i, col in enumerate(row.index):
+        val = row[col]
+        # El FIT se pinta Verde si es positivo, Rojo si es negativo
+        if col == 'Fit':
+            if val > 0.01:
+                styles[i] = 'color: #00E676 !important; font-weight: 800;'
+            elif val < -0.01:
+                styles[i] = 'color: #FF0000 !important; font-weight: 800;'
+        # El resto del dinero se pinta Dorado si es mayor a cero
+        elif col in ['Meta', 'Fijo', 'Variable', 'Asignado']:
+            if val > 0.01:
+                styles[i] = 'color: #d4af37 !important;'
+    return styles
 
-def pintar_faltante(s):
-    return ['color: #FF0000 !important; font-weight: bold;' if v > 0 else 'color: #ffffff;' for v in s]
-
-def pintar_dorado(s):
-    return ['color: #d4af37 !important;' if isinstance(v, (int, float)) and v > 0 else 'color: #ffffff;' for v in s]
-
-styled_df = df[["Concepto", "Plataforma", "Meta", "Asignado", "Faltante", "Excedente"]].style.format({
-    "Meta": "${:,.2f}", "Asignado": "${:,.2f}", 
-    "Faltante": "${:,.2f}", "Excedente": "${:,.2f}"
-})\
-.apply(pintar_excedente, subset=["Excedente"])\
-.apply(pintar_faltante, subset=["Faltante"])\
-.apply(pintar_dorado, subset=["Meta", "Asignado"])\
-.set_properties(**{'background-color': '#000000', 'border-color': '#d4af3722'})
+styled_df = df.style.apply(colorear_tabla, axis=1)\
+    .format({
+        "Meta": "${:,.2f}", "Fijo": "${:,.2f}", "Variable": "${:,.2f}",
+        "Asignado": "${:,.2f}", "Fit": "${:,.2f}"
+    })\
+    .set_properties(**{'background-color': '#000000', 'border-color': '#d4af3722'})
 
 st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
@@ -238,9 +245,4 @@ with c1:
 with c2:
     st.subheader("Distribución Visual")
     fig = px.pie(df_bancos, values='Asignado', names='Plataforma', hole=0.7,
-                 color_discrete_sequence=['#d4af37', '#ffffff', '#444444', '#888888', '#00E676'])
-    fig.update_layout(
-        template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-        font=dict(family="Montserrat", color="#ffffff")
-    )
-    st.plotly_chart(fig, use_container_width=True)
+                 color
