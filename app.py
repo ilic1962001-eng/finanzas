@@ -198,7 +198,7 @@ with st.expander("⚖️ Auditoría: Comparativa vs Plan MATLAB"):
     
     # Función de color
     def color_diferencia(val):
-        color = '#2ca02c' if val > 0 else '#d62728' if val < 0 else 'gray'
+        color = '#d62728' if val > 0 else '#2ca02c' if val < 0 else 'gray'
         return f'color: {color}; font-weight: bold'
     
     formato_auditoria = {"Plan MATLAB (Fijo)": "${:,.2f}", "Cascada Real (Fijo)": "${:,.2f}", "Diferencia": "${:,.2f}"}
