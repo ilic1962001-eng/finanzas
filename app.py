@@ -9,20 +9,47 @@ st.set_page_config(page_title="Dashboard Cascada Pro", layout="wide", page_icon=
 
 st.title("📊 Control Financiero: Cascada y Origen de Fondos")
 st.markdown("---")
+# ==========================================
+# EJECUCIÓN DE LA CASCADA (SÓLO INGRESO FIJO)
+# ==========================================
+# 1. ASIGNACIÓN INAMOVIBLE: Se asignan las metas completas primero
+# para identificar el déficit real antes de pasar a ahorro/deuda.
+
+f_renta = min(fijo_neto, meta_renta)
+f_transp = min(max(0, fijo_neto - meta_renta), meta_transporte)
+f_novia = min(max(0, fijo_neto - (meta_renta + meta_transporte)), meta_novia)
+f_viajes = min(max(0, fijo_neto - (meta_renta + meta_transporte + meta_novia)), meta_viajes)
+
+# Cálculo de remanente después de inamovibles para las cubetas flexibles
+f_remanente = max(0, fijo_neto - (meta_renta + meta_transporte + meta_novia + meta_viajes))
+
+f_deuda = min(f_remanente, meta_deuda); f_remanente -= f_deuda
+f_emerg = min(f_remanente, meta_emergencias); f_remanente -= f_emerg
+f_colchon = min(f_remanente, meta_colchon); f_remanente -= f_colchon
+f_retiro = f_remanente # Lo que sobra de lo fijo va a retiro
 
 # ==========================================
-# ENTRADA DE DATOS (Barra lateral)
+# LÓGICA DE RESCATE (INGRESO VARIABLE)
 # ==========================================
-st.sidebar.header("💸 Ingresos de la Semana")
-ingreso_fijo_bruto = st.sidebar.number_input("Ingreso FIJO Semanal ($)", min_value=0.0, value=0.0, step=100.0)
-ingreso_var_bruto = st.sidebar.number_input("Ingreso VARIABLE Semanal ($)", min_value=0.0, value=0.0, step=100.0)
+# Ahora el faltante es la suma de lo que NO se pudo cubrir de las 4 metas base
+faltante_inamov = (meta_renta - f_renta) + \
+                  (meta_transporte - f_transp) + \
+                  (meta_novia - f_novia) + \
+                  (meta_viajes - f_viajes)
 
-st.sidebar.markdown("---")
-st.sidebar.header("🎯 Metas de la Cascada")
-st.sidebar.caption("Prioridad 1 a 7. El ingreso fijo llena estas cubetas en orden.")
+v_rescate = 0
+var_disponible = var_neto
 
-
-diezmo_pct = 0.10
+if faltante_inamov > 0:
+    st.warning(f"⚠️ DÉFICIT DETECTADO: Faltan **${faltante_inamov:,.2f}** para cubrir los gastos inamovibles.")
+    
+    if var_neto > 0:
+        # El rescate ahora es mandatorio o sugerido para completar los límites
+        v_rescate = min(faltante_inamov, var_neto)
+        var_disponible = var_neto - v_rescate
+        st.success(f"✅ Se han tomado ${v_rescate:,.2f} del ingreso variable para completar los inamovibles.")
+    else:
+        st.error("❌ ALERTA: No hay suficiente ingreso (Fijo + Variable) para cubrir los gastos básicos.")
 # ==========================================
 # PROCESAMIENTO DE FONDOS Y DIEZMO
 # ==========================================
