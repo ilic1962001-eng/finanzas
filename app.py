@@ -32,10 +32,14 @@ meta_colchon = st.sidebar.number_input("7. Colchón", value=250.0, step=25.0)
 diezmo_pct = 0.10
 
 # ==========================================
-# PROCESAMIENTO DE FONDOS
+# PROCESAMIENTO DE FONDOS Y DIEZMO
 # ==========================================
-fijo_neto = ingreso_fijo_bruto * (1 - diezmo_pct) if ingreso_fijo_bruto > 0 else 0
-var_neto = ingreso_var_bruto * (1 - diezmo_pct) if ingreso_var_bruto > 0 else 0
+# Cálculo del diezmo inicial
+diezmo_fijo = ingreso_fijo_bruto * diezmo_pct if ingreso_fijo_bruto > 0 else 0
+diezmo_var = ingreso_var_bruto * diezmo_pct if ingreso_var_bruto > 0 else 0
+
+fijo_neto = ingreso_fijo_bruto - diezmo_fijo
+var_neto = ingreso_var_bruto - diezmo_var
 
 # ==========================================
 # EJECUCIÓN DE LA CASCADA (SÓLO INGRESO FIJO)
@@ -94,6 +98,7 @@ r_novia = min(meta_novia - f_novia, rescate_aux); rescate_aux -= r_novia
 r_viajes = min(meta_viajes - f_viajes, rescate_aux); rescate_aux -= r_viajes
 
 detalles = [
+    {"Concepto": "Diezmo (10%)", "Plataforma": "Cuenta Diezmo", "Fijo": diezmo_fijo, "Variable": diezmo_var},
     {"Concepto": "Renta", "Plataforma": "NU (Cajita)", "Fijo": f_renta, "Variable": r_renta},
     {"Concepto": "Transporte", "Plataforma": "NU (Gasto)", "Fijo": f_transp, "Variable": r_transp},
     {"Concepto": "Novia", "Plataforma": "NU (Gasto)", "Fijo": f_novia, "Variable": r_novia},
@@ -121,8 +126,8 @@ col_g1, col_g2 = st.columns(2)
 with col_g1:
     st.write("**💧 Llenado de Cascada (Real)**")
     df_bar = pd.DataFrame({
-        'Cubeta': df_detalles['Concepto'],
-        'Nivel Real': df_detalles['Total'],
+        'Cubeta': df_detalles['Concepto'][1:], # Excluimos Diezmo del gráfico de cascada
+        'Nivel Real': df_detalles['Total'][1:],
         'Meta': [meta_renta, meta_transporte, meta_novia, meta_viajes, meta_deuda, meta_emergencias, meta_colchon, 0]
     }).iloc[:-1] # Excluimos retiro para la gráfica de metas
     
@@ -143,11 +148,17 @@ st.subheader("💳 Resumen de Transferencias por Banco")
 
 df_bancos = df_detalles.groupby("Plataforma")["Total"].sum().reset_index()
 clabes = {
-    "NU (Cajita)": "638180000126660124", "NU (Gasto)": "638180000126660124", 
-    "CETES": "App Cetes", "GBM+": "601180400073884389", 
-    "SPIN": "728969000033664690", "Pago Deuda": "N/A"
+    "NU (Cajita)": "638180000126660124", 
+    "NU (Gasto)": "638180000126660124", 
+    "CETES": "App Cetes", 
+    "GBM+": "601180400073884389", 
+    "SPIN": "728969000033664690", 
+    "Pago Deuda": "N/A",
+    "Cuenta Diezmo": "N/A (Apartar en tu cuenta)"
 }
 df_bancos["Identificador / CLABE"] = df_bancos["Plataforma"].map(clabes)
+
+# Reordenar para que la plataforma sea más legible
 st.table(df_bancos.style.format({"Total": "${:,.2f}"}))
 
 st.markdown("---")
@@ -172,4 +183,7 @@ with st.expander("⚖️ Auditoría: Comparativa vs Plan MATLAB"):
         "Cascada Real (Fijo)": [f_renta, f_transp, f_novia, f_viajes]
     })
     df_auditoria["Diferencia"] = df_auditoria["Plan MATLAB (Fijo)"] - df_auditoria["Cascada Real (Fijo)"]
-    st.table(df_auditoria.style.format("${:,.2f}"))
+    
+    # CORRECCIÓN AQUÍ: Evitar que intente poner formato de $ a la palabra "Categoría"
+    formato_auditoria = {"Plan MATLAB (Fijo)": "${:,.2f}", "Cascada Real (Fijo)": "${:,.2f}", "Diferencia": "${:,.2f}"}
+    st.table(df_auditoria.style.format(formato_auditoria))
