@@ -1,13 +1,14 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 
 # ==========================================
 # CONFIGURACIÓN DE LA PÁGINA
 # ==========================================
 st.set_page_config(page_title="Dashboard Cascada Pro", layout="wide", page_icon="💧")
 
-st.title("📊 Control Financiero: Cascada y Origen de Fondos")
+st.title("📊 Control Financiero: Cascada y Compensación Dinámica")
 st.markdown("---")
 
 # ==========================================
@@ -19,10 +20,10 @@ ingreso_var_bruto = st.sidebar.number_input("Ingreso VARIABLE Semanal ($)", min_
 
 st.sidebar.markdown("---")
 st.sidebar.header("🎯 Metas de la Cascada")
-st.sidebar.caption("Prioridad 1 a 7. Si bajas una meta, el dinero 'sube' para cubrir las de arriba.")
+st.sidebar.caption("Si reduces una meta, generas un ahorro que sube a compensar los déficits de arriba.")
 
-meta_renta = st.sidebar.number_input("1. Renta (Meta: 3500/mes)", value=875.0, step=25.0)
-meta_transporte = st.sidebar.number_input("2. Transporte", value=300.0, step=25.0)
+meta_renta = st.sidebar.number_input("1. Renta (Meta fija)", value=875.0, step=25.0)
+meta_transporte = st.sidebar.number_input("2. Transporte (Meta fija)", value=450.0, step=25.0)
 meta_novia = st.sidebar.number_input("3. Novia", value=500.0, step=25.0)
 meta_viajes = st.sidebar.number_input("4. Viajes/Visitas", value=300.0, step=25.0)
 meta_deuda = st.sidebar.number_input("5. Deuda", value=400.0, step=25.0)
@@ -37,11 +38,12 @@ diezmo_pct = 0.10
 fijo_neto = ingreso_fijo_bruto * (1 - diezmo_pct) if ingreso_fijo_bruto > 0 else 0
 var_neto = ingreso_var_bruto * (1 - diezmo_pct) if ingreso_var_bruto > 0 else 0
 
-# Cálculos de Objetivo (Fórmulas MATLAB originales para la Auditoría)
-obj_renta = (fijo_neto * 0.75) * 0.45
+# Ideales MATLAB: Renta y Transporte ahora son inamovibles (fijos a 875 y 450)
+obj_renta = 875.0
+obj_transp = 450.0
+# El resto sigue respetando tu distribución base del ingreso fijo
 obj_novia = (fijo_neto * 0.75) * 0.20
 obj_viajes = (fijo_neto * 0.75) * 0.13
-obj_transp = (fijo_neto * 0.75) - (obj_renta + obj_novia + obj_viajes)
 obj_deuda = fijo_neto * 0.10
 obj_emerg = (fijo_neto * 0.10) * 0.25
 obj_colchon = (fijo_neto * 0.10) * 0.50
@@ -50,7 +52,6 @@ obj_colchon = (fijo_neto * 0.10) * 0.50
 # EJECUCIÓN DE LA CASCADA (FIJO)
 # ==========================================
 fijo_aux = fijo_neto
-# Fondos asignados desde el Ingreso FIJO
 f_renta = min(fijo_aux, meta_renta); fijo_aux -= f_renta
 f_transp = min(fijo_aux, meta_transporte); fijo_aux -= f_transp
 f_novia = min(fijo_aux, meta_novia); fijo_aux -= f_novia
@@ -58,7 +59,7 @@ f_viajes = min(fijo_aux, meta_viajes); fijo_aux -= f_viajes
 f_deuda = min(fijo_aux, meta_deuda); fijo_aux -= f_deuda
 f_emerg = min(fijo_aux, meta_emergencias); fijo_aux -= f_emerg
 f_colchon = min(fijo_aux, meta_colchon); fijo_aux -= f_colchon
-f_retiro = fijo_aux # Todo lo que sobre del fijo va a retiro
+f_retiro = max(0, fijo_aux) # Todo lo que sobre del fijo va a retiro
 
 # ==========================================
 # RESCATE Y MANEJO DEL VARIABLE
@@ -67,24 +68,17 @@ meta_inamovibles = meta_renta + meta_transporte + meta_novia + meta_viajes
 logrado_fijo_inamov = f_renta + f_transp + f_novia + f_viajes
 faltante_inamov = max(0, meta_inamovibles - logrado_fijo_inamov)
 
-v_rescate = 0
-v_deuda = v_emerg = v_colchon = v_retiro = v_reinversion = 0
+v_rescate = v_deuda = v_emerg = v_colchon = v_retiro = v_reinversion = 0
 
-st.subheader("💡 Diagnóstico de Flujo")
-if faltante_inamov > 0:
-    st.warning(f"⚠️ El ingreso fijo no cubre los Inamovibles. Faltan **${faltante_inamov:,.2f}**.")
-    if var_neto > 0:
-        if st.checkbox("🔄 Aplicar rescate con Ingreso Variable"):
-            v_rescate = min(faltante_inamov, var_neto)
-            var_disponible = var_neto - v_rescate
-            st.success(f"✅ Se rescataron ${v_rescate:,.2f} para cubrir gastos.")
-        else:
-            var_disponible = var_neto
+if faltante_inamov > 0 and var_neto > 0:
+    st.info(f"💡 El ingreso fijo no cubre los Inamovibles (Faltan ${faltante_inamov:,.2f}). Tienes variable disponible.")
+    if st.checkbox("🔄 Aplicar rescate con Ingreso Variable para cubrir Inamovibles"):
+        v_rescate = min(faltante_inamov, var_neto)
+        var_disponible = var_neto - v_rescate
+        st.success(f"✅ Se inyectaron ${v_rescate:,.2f} al operativo.")
     else:
-        var_disponible = 0
+        var_disponible = var_neto
 else:
-    if ingreso_fijo_bruto > 0:
-        st.success("✅ Ingreso Fijo suficiente para cubrir metas básicas.")
     var_disponible = var_neto
 
 # Repartición del Variable sobrante (50/30/20)
@@ -98,29 +92,67 @@ if var_disponible > 0:
     v_colchon = v_ahorro_bolsa * 0.25
 
 # ==========================================
-# AUDITORÍA DE DIFERENCIAS
+# AUDITORÍA DE DIFERENCIAS (EFECTO COMPENSACIÓN VISUAL)
 # ==========================================
-st.markdown("---")
-st.subheader("⚖️ Auditoría: ¿Cómo el ahorro de abajo ayuda arriba?")
+st.subheader("⚖️ Auditoría: Compensación Dinámica de Saldos")
+st.markdown("Si bajas una meta manual, generas un ahorro que sube automáticamente a cancelar los déficits de las metas superiores.")
 
 df_auditoria = pd.DataFrame({
     "Categoría": ["Renta", "Transporte", "Novia", "Viajes", "Deuda", "Emergencia", "Colchón"],
     "Ideal (MATLAB)": [obj_renta, obj_transp, obj_novia, obj_viajes, obj_deuda, obj_emerg, obj_colchon],
     "Meta Cascada": [meta_renta, meta_transporte, meta_novia, meta_viajes, meta_deuda, meta_emergencias, meta_colchon]
 })
-df_auditoria["Ahorro Generado"] = df_auditoria["Ideal (MATLAB)"] - df_auditoria["Meta Cascada"]
+
+# Diferencia Inicial (Positivo = Ahorro, Negativo = Déficit)
+df_auditoria["Diferencia Bruta"] = df_auditoria["Ideal (MATLAB)"] - df_auditoria["Meta Cascada"]
+
+# Lógica de Compensación: Los ahorros cubren los déficits
+ahorro_total_disponible = df_auditoria[df_auditoria["Diferencia Bruta"] > 0]["Diferencia Bruta"].sum()
+balance_neto_lista = []
+
+for diff in df_auditoria["Diferencia Bruta"]:
+    if diff < 0: # Es un déficit
+        necesidad = abs(diff)
+        if ahorro_total_disponible >= necesidad:
+            balance_neto_lista.append(0.0) # Déficit cubierto
+            ahorro_total_disponible -= necesidad
+        else:
+            balance_neto_lista.append(diff + ahorro_total_disponible) # Cubierto parcialmente
+            ahorro_total_disponible = 0
+    elif diff > 0:
+        balance_neto_lista.append(diff) # Se queda como ahorro inicial (visual), la bolsa maneja el global
+    else:
+        balance_neto_lista.append(0.0)
+
+df_auditoria["Déficit Restante (Post-Rescate Interno)"] = [min(0, val) for val in balance_neto_lista]
 
 def color_diff(val):
-    color = 'green' if val > 0 else 'red'
+    color = 'green' if val > 0 else 'red' if val < 0 else 'gray'
     return f'color: {color}; font-weight: bold'
 
-# AQUÍ ESTÁ LA CORRECCIÓN DEL ERROR DE PANDAS
-formato_columnas = {"Ideal (MATLAB)": "${:,.2f}", "Meta Cascada": "${:,.2f}", "Ahorro Generado": "${:,.2f}"}
-st.dataframe(df_auditoria.style.format(formato_columnas).map(color_diff, subset=['Ahorro Generado']), use_container_width=True)
+formato_columnas = {
+    "Ideal (MATLAB)": "${:,.2f}", "Meta Cascada": "${:,.2f}", 
+    "Diferencia Bruta": "${:,.2f}", "Déficit Restante (Post-Rescate Interno)": "${:,.2f}"
+}
+st.dataframe(df_auditoria.style.format(formato_columnas)\
+             .map(color_diff, subset=['Diferencia Bruta', 'Déficit Restante (Post-Rescate Interno)']), 
+             use_container_width=True)
 
-ahorro_total = df_auditoria["Ahorro Generado"].sum()
-if ahorro_total > 0 and ingreso_fijo_bruto > 0:
-    st.info(f"✨ Al reducir metas en cubetas bajas o ser más eficiente, liberaste **${ahorro_total:,.2f}** que fluyen a tus prioridades o inversiones.")
+# Gráfico de Cascada de Compensación (Waterfall)
+fig_waterfall = go.Figure(go.Waterfall(
+    name = "Compensación", orientation = "v",
+    measure = ["relative"] * 7 + ["total"],
+    x = ["Renta", "Transp", "Novia", "Viajes", "Deuda", "Emerg", "Colchón", "BALANCE FINAL"],
+    textposition = "outside",
+    text = [f"${v:,.0f}" for v in df_auditoria["Diferencia Bruta"]] + [f"${df_auditoria['Diferencia Bruta'].sum():,.0f}"],
+    y = list(df_auditoria["Diferencia Bruta"]) + [df_auditoria["Diferencia Bruta"].sum()],
+    connector = {"line":{"color":"rgb(63, 63, 63)"}},
+    increasing = {"marker":{"color":"#2ca02c"}},
+    decreasing = {"marker":{"color":"#d62728"}},
+    totals = {"marker":{"color":"#1f77b4"}}
+))
+fig_waterfall.update_layout(title="Impacto Visual: Ahorros cancelando Déficits", showlegend=False)
+st.plotly_chart(fig_waterfall, use_container_width=True)
 
 # ==========================================
 # TRANSFERENCIAS FINALES (DESGLOSADAS)
@@ -128,62 +160,36 @@ if ahorro_total > 0 and ingreso_fijo_bruto > 0:
 st.markdown("---")
 st.subheader("💳 Plan de Transferencias Final (Desglosado)")
 
-# Cálculo de montos por plataforma y origen
-# NU: Renta + Transp + Novia + Colchones
-nu_fijo = f_renta + f_transp + f_novia + f_colchon + (v_rescate if v_rescate > 0 else 0)
-nu_var = v_colchon
-nu_total = nu_fijo + nu_var
-
-# CETES: Emergencias
-cetes_fijo = f_emerg
-cetes_var = v_emerg
-cetes_total = cetes_fijo + cetes_var
-
-# GBM: Retiro + Reinversión
-gbm_fijo = f_retiro
-gbm_var = v_retiro + v_reinversion
-gbm_total = gbm_fijo + gbm_var
-
-# SPIN: Viajes
-spin_fijo = f_viajes
-spin_total = spin_fijo
+nu_fijo = f_renta + f_transp + f_novia + f_colchon + v_rescate
+nu_total = nu_fijo + v_colchon
+cetes_total = f_emerg + v_emerg
+gbm_total = f_retiro + v_retiro + v_reinversion
+spin_total = f_viajes
 
 df_final = pd.DataFrame({
     "Plataforma": ["NU (Gastos/Colchón)", "CETES", "GBM+", "SPIN", "Deuda"],
     "Monto Total": [nu_total, cetes_total, gbm_total, spin_total, f_deuda + v_deuda],
-    "Desde Fijo": [nu_fijo, cetes_fijo, gbm_fijo, spin_fijo, f_deuda],
-    "Desde Variable": [nu_var, cetes_var, gbm_var, 0, v_deuda],
-    "CLABE / App": ["638180000126660124", "App Cetes", "601180400073884389", "728969000033664690", "N/A"]
+    "Desde Fijo": [nu_fijo, f_emerg, f_retiro, f_viajes, f_deuda],
+    "Desde Variable": [v_colchon, v_emerg, v_retiro + v_reinversion, 0, v_deuda],
+    "CLABE": ["638180000126660124", "App Cetes", "601180400073884389", "728969000033664690", "N/A"]
 })
 
-# Formato específico para la tabla final
-formato_final = {"Monto Total": "${:,.2f}", "Desde Fijo": "${:,.2f}", "Desde Variable": "${:,.2f}"}
-st.table(df_final.style.format(formato_final))
+st.table(df_final.style.format({"Monto Total": "${:,.2f}", "Desde Fijo": "${:,.2f}", "Desde Variable": "${:,.2f}"}))
 
 # ==========================================
-# VISUALIZACIÓN
+# VISUALIZACIÓN DE LA CASCADA REAL
 # ==========================================
 st.markdown("---")
-col_g1, col_g2 = st.columns(2)
+st.write("**💧 Dinero Real Llenando las Cubetas (Fijo + Rescate Variable)**")
 
-with col_g1:
-    st.write("**💧 Llenado de Cascada**")
-    df_bar = pd.DataFrame({
-        'Cubeta': ['Renta', 'Transp', 'Novia', 'Viajes', 'Deuda', 'Emerg', 'Colchón'],
-        'Nivel Real': [f_renta + v_rescate, f_transp, f_novia, f_viajes, f_deuda, f_emerg, f_colchon],
-        'Meta': [meta_renta, meta_transporte, meta_novia, meta_viajes, meta_deuda, meta_emergencias, meta_colchon]
-    })
-    
-    fig = px.bar(df_bar, x='Cubeta', y=['Meta', 'Nivel Real'], barmode='overlay', color_discrete_sequence=['#e5e5e5', '#00CC96'])
-    st.plotly_chart(fig, use_container_width=True)
+df_bar = pd.DataFrame({
+    'Cubeta': ['Renta', 'Transp', 'Novia', 'Viajes', 'Deuda', 'Emerg', 'Colchón'],
+    # Para la gráfica, el rescate inyectado asume llenar desde arriba hacia abajo:
+    'Nivel Real': [min(meta_renta, f_renta + v_rescate), 
+                   min(meta_transporte, f_transp + max(0, v_rescate - (meta_renta - f_renta))), 
+                   f_novia, f_viajes, f_deuda, f_emerg, f_colchon],
+    'Meta': [meta_renta, meta_transporte, meta_novia, meta_viajes, meta_deuda, meta_emergencias, meta_colchon]
+})
 
-with col_g2:
-    st.write("**📈 Composición del Ahorro Total**")
-    df_pie = pd.DataFrame({
-        'Origen': ['Fondo Emergencia', 'Inversión GBM', 'Colchón NU'],
-        'Monto': [cetes_total, gbm_total, f_colchon + v_colchon]
-    })
-    if cetes_total + gbm_total + f_colchon + v_colchon > 0:
-        st.plotly_chart(px.pie(df_pie, values='Monto', names='Origen', hole=0.4), use_container_width=True)
-    else:
-        st.info("Ingresa montos para visualizar tu ahorro.")
+fig = px.bar(df_bar, x='Cubeta', y=['Meta', 'Nivel Real'], barmode='overlay', color_discrete_sequence=['#e5e5e5', '#00CC96'])
+st.plotly_chart(fig, use_container_width=True)
