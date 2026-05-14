@@ -91,7 +91,6 @@ if capacidad_gasto_fijo >= meta_inamovibles_total:
     f_novia, f_viajes = capacidad_gasto_fijo*p_novia, capacidad_gasto_fijo*p_viajes
     f_deuda, f_retiro = fijo_neto*DEUDA_PCT, fijo_neto*INVERSION_PCT
     f_emerg, f_colchon = (fijo_neto*AHORRO_PCT)*0.5, (fijo_neto*AHORRO_PCT)*0.5
-    modo_actual = "Crecimiento Desbloqueado 🚀"
 else:
     f_aux = fijo_neto
     f_renta = min(f_aux, META_RENTA); f_aux -= f_renta
@@ -102,7 +101,6 @@ else:
     f_emerg = min(f_aux, 250.0); f_aux -= f_emerg
     f_colchon = min(f_aux, 250.0); f_aux -= f_colchon
     f_retiro = f_aux
-    modo_actual = "Cascada (Rescatando) ⚠️"
 
 v_aux = var_neto
 v_renta = min(v_aux, max(0, META_RENTA - f_renta)); v_aux -= v_renta
@@ -114,6 +112,17 @@ if v_aux > 0:
     v_ahorro_t = v_aux * 0.50
     v_deuda, v_retiro = v_aux * 0.30, v_aux * 0.20
     v_emerg, v_colchon = v_ahorro_t * 0.50, v_ahorro_t * 0.50
+
+# Cálculos de Déficit y Rescate
+rescate_total = v_renta + v_transp + v_novia + v_viajes
+if var_neto > 0 and rescate_total > 0:
+    pct_rescate = (rescate_total / var_neto) * 100
+    texto_rescate = f"{pct_rescate:.1f}%"
+else:
+    texto_rescate = "Nada"
+
+asignado_basicos = f_renta + v_renta + f_transp + v_transp + f_novia + v_novia + f_viajes + v_viajes
+deficit_basico = meta_inamovibles_total - asignado_basicos
 
 # Creación de DataFrame
 data = [
@@ -154,7 +163,7 @@ with r2: st.metric("AHORRO GENERADO (EMERG. + COLCHÓN)", f"${ahorro_semanal_gen
 with r3: 
     st.markdown(f"""
         <div data-testid='metric-container'>
-            <label data-testid='stMetricLabel'>PROYECCIÓN S&P 500 (A 30 AÑOS)</label>
+            <label data-testid='stMetricLabel'>PROYECCIÓN S&P 500 (30 AÑOS)</label>
             <div data-testid='stMetricValue' style='color: #00E676 !important;'>${proyeccion_sp500:,.2f}</div>
         </div>
     """, unsafe_allow_html=True)
@@ -165,38 +174,48 @@ st.markdown("---")
 st.markdown("<h4 style='color:#ffffff; text-align:center;'>MÉTRICAS DEL SISTEMA</h4>", unsafe_allow_html=True)
 m1, m2, m3 = st.columns(3)
 with m1: st.metric("NETO SEMANAL", f"${(fijo_neto + var_neto):,.2f}")
-with m2: st.metric("ESTADO ACTUAL", modo_actual)
+with m2: st.metric("% VAR. USADO EN RESCATE", texto_rescate)
 with m3: 
     total_profit = df['Profit'].sum()
-    if total_profit > 0:
+    if deficit_basico > 0.01:
         st.markdown(f"""
-            <div data-testid='metric-container'>
-                <label data-testid='stMetricLabel'>PROFIT GENERADO (EXCEDENTE)</label>
-                <div data-testid='stMetricValue' style='color: #00E676 !important;'>${total_profit:,.2f}</div>
+            <div data-testid='metric-container' style='border-color: #FF000044;'>
+                <label data-testid='stMetricLabel' style='color: #FF0000 !important;'>DÉFICIT (FALTANTE MÍNIMOS)</label>
+                <div data-testid='stMetricValue' style='color: #FF0000 !important;'>-${deficit_basico:,.2f}</div>
             </div>
         """, unsafe_allow_html=True)
     else:
-        st.metric("PROFIT GENERADO (EXCEDENTE)", f"${total_profit:,.2f}")
+        color_profit = "#00E676" if total_profit > 0 else "#d4af37"
+        st.markdown(f"""
+            <div data-testid='metric-container'>
+                <label data-testid='stMetricLabel'>PROFIT GENERADO (EXCEDENTE)</label>
+                <div data-testid='stMetricValue' style='color: {color_profit} !important;'>${total_profit:,.2f}</div>
+            </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("---")
 
-# --- TABLA CON ESTILOS CORREGIDOS (Orden de mapeo antes del formato) ---
+# --- TABLA CON ESTILOS BLINDADOS A PRUEBA DE FALLOS ---
 st.subheader("Desglose de Capital")
 
-def format_general(val):
-    return 'color: #d4af37' if val > 0 else 'color: #ffffff'
+def apply_styles(x):
+    # Creamos un dataframe vacío con la misma estructura para inyectar CSS puro
+    styles = pd.DataFrame('', index=x.index, columns=x.columns)
+    for col in x.columns:
+        if col == 'Profit':
+            styles[col] = ['color: #00E676 !important; font-weight: 800 !important;' if v > 0 else 'color: #ffffff !important;' for v in x[col]]
+        elif col in ['Meta', 'Fijo', 'Variable', 'Total']:
+            styles[col] = ['color: #d4af37 !important;' if isinstance(v, (int, float)) and v > 0 else 'color: #ffffff !important;' for v in x[col]]
+        else:
+            styles[col] = 'color: #ffffff !important;'
+    return styles
 
-def format_profit(val):
-    return 'color: #00E676; font-weight: bold;' if val > 0 else 'color: #ffffff'
-
-# AQUÍ SE CORRIGE EL BUG: Se mapea el valor numérico ANTES de volverlo texto
-styled_df = df.style.map(format_general, subset=["Meta", "Fijo", "Variable", "Total"])\
-    .map(format_profit, subset=["Profit"])\
+styled_df = df.style.apply(apply_styles, axis=None)\
     .format({
         "Meta": "${:,.2f}", "Fijo": "${:,.2f}", "Variable": "${:,.2f}", 
         "Total": "${:,.2f}", "Profit": "${:,.2f}"
     })\
-    .set_properties(**{'background-color': '#000000', 'color': '#ffffff', 'border-color': '#d4af3722'})
+    .set_properties(**{'background-color': '#000000', 'border-color': '#d4af3722'})
 
 st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
