@@ -158,32 +158,45 @@ clabes = {
 }
 df_bancos["Identificador / CLABE"] = df_bancos["Plataforma"].map(clabes)
 
-# Reordenar para que la plataforma sea más legible
 st.table(df_bancos.style.format({"Total": "${:,.2f}"}))
 
 st.markdown("---")
 st.subheader("📝 Detalle Granular de Movimientos")
 st.caption("Uso del dinero desglosado por origen (Fijo vs Variable) y concepto.")
 
-# Formato de moneda para la tabla de detalles
 formato_moneda = {"Fijo": "${:,.2f}", "Variable": "${:,.2f}", "Total": "${:,.2f}"}
 st.dataframe(df_detalles.style.format(formato_moneda), use_container_width=True)
 
-# Auditoría de MATLAB (Diferencias)
+# ==========================================
+# AUDITORÍA DE MATLAB (CORREGIDA COMPLETA Y CON COLORES)
+# ==========================================
 with st.expander("⚖️ Auditoría: Comparativa vs Plan MATLAB"):
     f_neto = fijo_neto
+    # Se calculan las 7 categorías operativas/ahorro en base al ingreso fijo
     obj_renta = (f_neto * 0.75) * 0.45 if f_neto > 0 else 0
     obj_novia = (f_neto * 0.75) * 0.20 if f_neto > 0 else 0
     obj_viajes = (f_neto * 0.75) * 0.13 if f_neto > 0 else 0
     obj_transp = (f_neto * 0.75) - (obj_renta + obj_novia + obj_viajes) if f_neto > 0 else 0
+    obj_deuda_matlab = f_neto * 0.10 if f_neto > 0 else 0
+    obj_ahorro_matlab = f_neto * 0.10 if f_neto > 0 else 0
+    obj_emerg_matlab = obj_ahorro_matlab * 0.25
+    obj_colchon_matlab = obj_ahorro_matlab * 0.50
     
     df_auditoria = pd.DataFrame({
-        "Categoría": ["Renta", "Transporte", "Novia", "Viajes"],
-        "Plan MATLAB (Fijo)": [obj_renta, obj_transp, obj_novia, obj_viajes],
-        "Cascada Real (Fijo)": [f_renta, f_transp, f_novia, f_viajes]
+        "Categoría": ["Renta", "Transporte", "Novia", "Viajes", "Deuda", "Emergencias", "Colchón"],
+        "Plan MATLAB (Fijo)": [obj_renta, obj_transp, obj_novia, obj_viajes, obj_deuda_matlab, obj_emerg_matlab, obj_colchon_matlab],
+        "Cascada Real (Fijo)": [f_renta, f_transp, f_novia, f_viajes, f_deuda, f_emerg, f_colchon]
     })
+    
+    # Diferencia: Positivo = Ahorro / Eficiencia ; Negativo = Déficit
     df_auditoria["Diferencia"] = df_auditoria["Plan MATLAB (Fijo)"] - df_auditoria["Cascada Real (Fijo)"]
     
-    # CORRECCIÓN AQUÍ: Evitar que intente poner formato de $ a la palabra "Categoría"
+    # Función de color
+    def color_diferencia(val):
+        color = '#2ca02c' if val > 0 else '#d62728' if val < 0 else 'gray'
+        return f'color: {color}; font-weight: bold'
+    
     formato_auditoria = {"Plan MATLAB (Fijo)": "${:,.2f}", "Cascada Real (Fijo)": "${:,.2f}", "Diferencia": "${:,.2f}"}
-    st.table(df_auditoria.style.format(formato_auditoria))
+    
+    # Usamos st.dataframe para que soporte los colores
+    st.dataframe(df_auditoria.style.format(formato_auditoria).map(color_diferencia, subset=['Diferencia']), use_container_width=True)
