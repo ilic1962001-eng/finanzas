@@ -7,144 +7,124 @@ import plotly.express as px
 # ==========================================
 st.set_page_config(page_title="Mi Dashboard Financiero", layout="wide", page_icon="💰")
 
-st.title("📊 Dashboard Financiero Semanal")
+st.title("📊 Dashboard Financiero: Sistema en Cascada")
 st.markdown("---")
 
 # ==========================================
 # ENTRADA DE DATOS (Barra lateral)
 # ==========================================
-st.sidebar.header("Ingresos de la Semana")
+st.sidebar.header("💸 Ingresos de la Semana")
 ingreso_fijo = st.sidebar.number_input("Ingreso FIJO ($)", min_value=0.0, value=0.0, step=100.0)
 ingreso_variable = st.sidebar.number_input("Ingreso VARIABLE ($)", min_value=0.0, value=0.0, step=100.0)
+
+st.sidebar.markdown("---")
+st.sidebar.header("🎯 Metas (Orden de Prioridad)")
+st.sidebar.caption("Define cuánto requiere cada cubeta. El sistema las llenará de arriba hacia abajo.")
+
+meta_renta = st.sidebar.number_input("1. Renta", value=875.0, step=50.0)
+meta_transporte = st.sidebar.number_input("2. Transporte", value=300.0, step=50.0)
+meta_novia = st.sidebar.number_input("3. Novia", value=500.0, step=50.0)
+meta_viajes = st.sidebar.number_input("4. Viajes/Ocio", value=300.0, step=50.0)
+meta_deuda = st.sidebar.number_input("5. Deuda", value=400.0, step=50.0)
+meta_emergencias = st.sidebar.number_input("6. Emergencias (CETES)", value=250.0, step=50.0)
+meta_colchon = st.sidebar.number_input("7. Colchón", value=250.0, step=50.0)
+# Lo que sobre después de esto, irá al Retiro (Prioridad 8)
 
 diezmo_pct = 0.10
 
 # ==========================================
-# LÓGICA MATEMÁTICA: INICIALIZACIÓN
+# LÓGICA DE FONDOS DISPONIBLES
 # ==========================================
-renta_guardadito = novia = visitas = transporte = 0
-colchon_fijo = emergencia_fijo = ahorro_libre_fijo = 0
-ahorro_fijo = deuda_fijo = ocio_fijo = 0
-fijo_despues_dios = 0
+fijo_despues_dios = ingreso_fijo * (1 - diezmo_pct) if ingreso_fijo > 0 else 0
+var_despues_dios = ingreso_variable * (1 - diezmo_pct) if ingreso_variable > 0 else 0
 
-ahorro_var = deuda_var = reinversion = 0
+# Los gastos inamovibles son las primeras 4 prioridades
+meta_inamovibles = meta_renta + meta_transporte + meta_novia + meta_viajes
+faltante_inamovibles = max(0, meta_inamovibles - fijo_despues_dios)
+
+# ==========================================
+# DIAGNÓSTICO Y RESCATE TEMPORAL
+# ==========================================
+rescate_aplicado = 0
+aplicar_rescate = False
+
+if faltante_inamovibles > 0 and fijo_despues_dios > 0:
+    st.warning(f"⚠️ **Diagnóstico:** Tu ingreso fijo neto (${fijo_despues_dios:,.2f}) no cubre tus 4 gastos inamovibles (${meta_inamovibles:,.2f}). Faltan **${faltante_inamovibles:,.2f}**.")
+    
+    if var_despues_dios > 0:
+        st.info(f"💡 **Solución Temporal:** Tienes ${var_despues_dios:,.2f} netos en el Variable. Puedes usar parte para blindar tus metas operativas.")
+        aplicar_rescate = st.checkbox("🔄 Utilizar Ingreso Variable como rescate esta semana.")
+        
+        if aplicar_rescate:
+            rescate_aplicado = min(faltante_inamovibles, var_despues_dios)
+            st.success(f"✅ Se transfirieron **${rescate_aplicado:,.2f}** del Variable al Fijo.")
+    else:
+        st.error("❌ No hay Ingreso Variable para un rescate. El dinero llegará hasta donde alcance la cascada.")
+elif fijo_despues_dios == 0:
+    st.info("Introduce tus ingresos para ver el diagnóstico.")
+else:
+    st.success(f"✅ ¡Excelente! Tu Ingreso Fijo cubre tus gastos inamovibles. Tu Ingreso Variable se invertirá íntegramente.")
+
+# Ajuste de bolsas después del rescate (si hubo)
+fijo_operativo = fijo_despues_dios + rescate_aplicado
+var_operativo = var_despues_dios - rescate_aplicado
+
+# ==========================================
+# ALGORITMO DE CASCADA (LLENADO POR PRIORIDAD)
+# ==========================================
+# Variables de destino
+r_renta = r_transp = r_novia = r_viajes = r_deuda = r_emerg = r_colchon = r_retiro = 0
+
+# 1. Renta
+r_renta = min(fijo_operativo, meta_renta); fijo_operativo -= r_renta
+# 2. Transporte
+r_transp = min(fijo_operativo, meta_transporte); fijo_operativo -= r_transp
+# 3. Novia
+r_novia = min(fijo_operativo, meta_novia); fijo_operativo -= r_novia
+# 4. Viajes
+r_viajes = min(fijo_operativo, meta_viajes); fijo_operativo -= r_viajes
+# 5. Deuda
+r_deuda = min(fijo_operativo, meta_deuda); fijo_operativo -= r_deuda
+# 6. Emergencias
+r_emerg = min(fijo_operativo, meta_emergencias); fijo_operativo -= r_emerg
+# 7. Colchón
+r_colchon = min(fijo_operativo, meta_colchon); fijo_operativo -= r_colchon
+# 8. Retiro (Todo el dinero libre sobrante va a crecimiento a largo plazo)
+r_retiro = fijo_operativo 
+
+# ==========================================
+# PROCESAMIENTO DEL VARIABLE INTOCABLE
+# ==========================================
+ahorro_var = deuda_var = reinversion_var = 0
 emergencia_var = retiro_var = colchon_var = 0
-var_despues_dios = 0
 
-# FIJO
-if ingreso_fijo > 0:
-    fijo_despues_dios = ingreso_fijo * (1 - diezmo_pct)
-    gasto_fijo = fijo_despues_dios * 0.75
-    ahorro_fijo = fijo_despues_dios * 0.10
-    deuda_fijo = fijo_despues_dios * 0.10
-    ocio_fijo = fijo_despues_dios * 0.05
-
-    renta_guardadito = gasto_fijo * 0.45
-    novia = gasto_fijo * 0.20
-    visitas = gasto_fijo * 0.13
-    transporte = gasto_fijo - (renta_guardadito + novia + visitas)
-
-    colchon_fijo = ahorro_fijo * 0.50
-    emergencia_fijo = ahorro_fijo * 0.25
-    ahorro_libre_fijo = ahorro_fijo * 0.25
-
-# VARIABLE
-if ingreso_variable > 0:
-    var_despues_dios = ingreso_variable * (1 - diezmo_pct)
-    ahorro_var = var_despues_dios * 0.50
-    deuda_var = var_despues_dios * 0.30
-    reinversion = var_despues_dios * 0.20
+if var_operativo > 0:
+    ahorro_var = var_operativo * 0.50
+    deuda_var = var_operativo * 0.30
+    reinversion_var = var_operativo * 0.20
 
     emergencia_var = ahorro_var * 0.50
     retiro_var = ahorro_var * 0.25
     colchon_var = ahorro_var * 0.25
 
-# ==========================================
-# METAS Y CÁLCULO DE FALTANTES
-# ==========================================
-meta_renta_mensual = 3500.0
-meta_renta_semanal = meta_renta_mensual / 4
-meta_novia_semanal = 500.0
-
-factor_renta = (1 - diezmo_pct) * 0.75 * 0.45
-factor_novia = (1 - diezmo_pct) * 0.75 * 0.20
-
-ingreso_necesario_renta = meta_renta_semanal / factor_renta
-ingreso_necesario_novia = meta_novia_semanal / factor_novia
-
-ingreso_bruto_ideal = max(ingreso_necesario_renta, ingreso_necesario_novia)
-ingreso_neto_ideal = ingreso_bruto_ideal * (1 - diezmo_pct)
-
-cobertura_pct = (ingreso_fijo / ingreso_bruto_ideal * 100) if ingreso_bruto_ideal > 0 else 100.0
-faltante_bruto = max(0, ingreso_bruto_ideal - ingreso_fijo)
-faltante_neto = max(0, ingreso_neto_ideal - fijo_despues_dios)
-
-# ==========================================
-# PANEL DE DIAGNÓSTICO Y RESCATE MANUAL
-# ==========================================
-renta_final, novia_final, visitas_final, transporte_final = renta_guardadito, novia, visitas, transporte
-gasto_fijo_final = gasto_fijo if ingreso_fijo > 0 else 0
-rescate_aplicado = 0
-aplicar_rescate = False
-
-if faltante_bruto > 0:
-    st.warning(f"⚠️ **Diagnóstico:** Para cubrir tus metas inamovibles (Renta y Novia) al 100%, te falta ingresar **${faltante_bruto:,.2f} BRUTOS** (lo que equivale a **${faltante_neto:,.2f} NETOS**) extra en tu Ingreso Fijo.")
-    
-    if var_despues_dios > 0:
-        st.info(f"💡 **Sugerencia de Solución:** Tienes **${var_despues_dios:,.2f}** netos disponibles en tu Ingreso Variable. Puedes usar parte de este dinero para estabilizar tus metas de esta semana.")
-        # Aquí está la magia: un botón que tú controlas
-        aplicar_rescate = st.checkbox("🔄 Sí, recalcular usando el Ingreso Variable como rescate esta semana.")
-        
-        if aplicar_rescate:
-            rescate_aplicado = min(faltante_neto, var_despues_dios)
-            fijo_rescatado = fijo_despues_dios + rescate_aplicado
-            
-            # Recalcular los fijos con el dinero inyectado
-            gasto_fijo_final = fijo_rescatado * 0.75
-            renta_final = gasto_fijo_final * 0.45
-            novia_final = gasto_fijo_final * 0.20
-            visitas_final = gasto_fijo_final * 0.13
-            transporte_final = gasto_fijo_final - (renta_final + novia_final + visitas_final)
-            
-            # Recalcular los variables (descontando lo que prestamos al fijo)
-            var_restante = var_despues_dios - rescate_aplicado
-            ahorro_var = var_restante * 0.50
-            deuda_var = var_restante * 0.30
-            reinversion = var_restante * 0.20
-
-            emergencia_var = ahorro_var * 0.50
-            retiro_var = ahorro_var * 0.25
-            colchon_var = ahorro_var * 0.25
-            
-            st.success(f"✅ Se inyectaron **${rescate_aplicado:,.2f}** a tus gastos operativos. Gráficas actualizadas.")
-    else:
-        st.error("❌ No tienes fondos en tu Ingreso Variable esta semana. Tendrás que ajustar tus gastos.")
-else:
-    if ingreso_fijo > 0:
-        st.success("✅ ¡Felicidades! Tu Ingreso Fijo esta semana cubre y supera tus gastos inamovibles.")
+# Sumatorias Finales
+emergencia_total = r_emerg + emergencia_var
+retiro_total = r_retiro + retiro_var
+inversion_gbm_total = retiro_total + reinversion_var
+colchon_total = r_colchon + colchon_var
+deuda_total = r_deuda + deuda_var
 
 st.markdown("---")
-
-# ==========================================
-# CONSOLIDADOS FINALES (Sumas después de cualquier decisión)
-# ==========================================
-ingreso_total = ingreso_fijo + ingreso_variable
-colchon_total = colchon_fijo + colchon_var
-emergencia_total = emergencia_fijo + emergencia_var
-retiro_total = retiro_var
-inversion_gbm_total = retiro_total + reinversion
-ocio_total = ocio_fijo
 
 # ==========================================
 # INTERFAZ DE USUARIO (DASHBOARD)
 # ==========================================
 
 # 1. KPIs Rápidos
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Ingreso Total Bruto", f"${ingreso_total:,.2f}")
-col2.metric("Cobertura Ideal", f"{cobertura_pct:.1f}%")
-col3.metric("Ahorro / Inversión Total", f"${(emergencia_total + inversion_gbm_total + colchon_total):,.2f}")
-col4.metric("Presupuesto de Ocio", f"${ocio_total:,.2f}")
+col1, col2, col3 = st.columns(3)
+col1.metric("Ingreso Total Bruto", f"${(ingreso_fijo + ingreso_variable):,.2f}")
+col2.metric("Total a Deuda", f"${deuda_total:,.2f}")
+col3.metric("Total Ahorro/GBM", f"${(emergencia_total + inversion_gbm_total + colchon_total):,.2f}")
 
 st.markdown("---")
 
@@ -152,63 +132,50 @@ st.markdown("---")
 col_graf1, col_graf2 = st.columns(2)
 
 with col_graf1:
-    st.subheader("🏠 Distribución Gasto (NU)")
-    if gasto_fijo_final > 0:
+    st.subheader("💧 Nivel de Llenado (La Cascada)")
+    df_cascada = pd.DataFrame({
+        'Prioridad': ['1. Renta', '2. Transp.', '3. Novia', '4. Viajes', '5. Deuda', '6. Emerg.', '7. Colchón'],
+        'Asignado ($)': [r_renta, r_transp, r_novia, r_viajes, r_deuda, r_emerg, r_colchon],
+        'Meta Requerida': [meta_renta, meta_transporte, meta_novia, meta_viajes, meta_deuda, meta_emergencias, meta_colchon]
+    })
+    # Graficar cuánto se llenó vs cuánto pedía la meta
+    fig_bar = px.bar(df_cascada, x='Prioridad', y=['Meta Requerida', 'Asignado ($)'], 
+                     barmode='overlay', opacity=0.8, color_discrete_sequence=['#e5e5e5', '#1f77b4'])
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+with col_graf2:
+    st.subheader("🏠 Distribución Gasto Operativo")
+    total_gasto = r_renta + r_transp + r_novia + r_viajes
+    if total_gasto > 0:
         df_pie = pd.DataFrame({
-            'Categoría': ['Renta', 'Novia', 'Visitas', 'Transporte'],
-            'Monto': [renta_final, novia_final, visitas_final, transporte_final]
+            'Categoría': ['Renta', 'Transporte', 'Novia', 'Viajes'],
+            'Monto': [r_renta, r_transp, r_novia, r_viajes]
         })
-        fig_pie = px.pie(df_pie, values='Monto', names='Categoría', hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
+        fig_pie = px.pie(df_pie, values='Monto', names='Categoría', hole=0.4)
         fig_pie.update_traces(textposition='inside', textinfo='percent+label')
         st.plotly_chart(fig_pie, use_container_width=True)
     else:
-        st.info("Ingresa un monto para ver la distribución.")
-
-with col_graf2:
-    st.subheader("🎯 Termómetro de Metas Semanales")
-    df_bar = pd.DataFrame({
-        'Categoría': ['Renta', 'Renta', 'Novia', 'Novia'],
-        'Tipo': ['Logrado', 'Meta Inamovible', 'Logrado', 'Meta Inamovible'],
-        'Monto': [renta_final, meta_renta_semanal, novia_final, meta_novia_semanal]
-    })
-    fig_bar = px.bar(df_bar, x='Categoría', y='Monto', color='Tipo', barmode='group',
-                     color_discrete_map={'Logrado': '#2ca02c', 'Meta Inamovible': '#d62728'})
-    st.plotly_chart(fig_bar, use_container_width=True)
+        st.info("Sin fondos en la cascada.")
 
 st.markdown("---")
 
 # 3. Tabla de Transferencias y CLABEs
-st.subheader("💳 Destino de Fondos (Transferencias)")
+st.subheader("💳 Destino de Fondos a Transferir")
 df_transferencias = pd.DataFrame({
-    "Plataforma": ["NU (Gastos y Colchón)", "CETES Directo (Emergencias)", "GBM+ (Retiro/Inversión)", "SPIN (Ocio)"],
+    "Plataforma": ["NU (Gastos y Colchón)", "CETES Directo (Emergencias)", "GBM+ (Retiro/Inversión)", "SPIN (Ocio/Viajes)"],
     "Monto ($)": [
-        f"${(gasto_fijo_final + colchon_total):,.2f}", 
+        f"${(r_renta + r_transp + r_novia + colchon_total):,.2f}", 
         f"${emergencia_total:,.2f}", 
         f"${inversion_gbm_total:,.2f}", 
-        f"${ocio_total:,.2f}"
+        f"${r_viajes:,.2f}"
     ],
     "CLABE / App": ["638180000126660124", "N/A (Desde App)", "601180400073884389", "728969000033664690"],
-    "Detalles": [
-        f"Renta: ${renta_final:,.2f} | Novia: ${novia_final:,.2f} | Colchón: ${colchon_total:,.2f} | Visitas: ${visitas_final:,.2f} | Transp: ${transporte_final:,.2f}",
-        "Seguridad y liquidez a corto plazo",
-        "Estrategia a largo plazo (Bolsa de Valores)",
-        "Salidas y gustos personales"
+    "Detalle": [
+        f"Renta: ${r_renta:,.2f} | Transp: ${r_transp:,.2f} | Novia: ${r_novia:,.2f} | Colchón: ${colchon_total:,.2f}",
+        "La cubeta #6 y el 25% del variable",
+        f"Todo el dinero libre sobrante (${r_retiro:,.2f}) + Porción variable",
+        "La cubeta #4 completa"
     ]
 })
 
 st.table(df_transferencias)
-
-# 4. Proyecciones
-with st.expander("Ver Proyecciones Financieras a Futuro 🚀"):
-    st.markdown("**🛡️ Fondo de Emergencias (CETES ~11% anual)**")
-    semanas = 52
-    tasa_cetes = 0.11 / semanas
-    fv_cetes = emergencia_total * (((1 + tasa_cetes)**semanas - 1) / tasa_cetes) if emergencia_total > 0 else 0
-    st.write(f"Si mantienes esta aportación semanal constante, en 1 año tendrás: **${fv_cetes:,.2f}**")
-
-    st.markdown("**📈 Retiro / Inversión (GBM ~10% anual)**")
-    tasa_gbm = 0.10 / semanas
-    fv_gbm10 = inversion_gbm_total * (((1 + tasa_gbm)**(10*semanas) - 1) / tasa_gbm) if inversion_gbm_total > 0 else 0
-    fv_gbm30 = inversion_gbm_total * (((1 + tasa_gbm)**(30*semanas) - 1) / tasa_gbm) if inversion_gbm_total > 0 else 0
-    st.write(f"Proyección a 10 años: **${fv_gbm10:,.2f}**")
-    st.write(f"Proyección a 30 años: **${fv_gbm30:,.2f}**")
