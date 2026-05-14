@@ -7,24 +7,13 @@ import plotly.express as px
 # ==========================================
 st.set_page_config(page_title="Dashboard Cascada Pro", layout="wide", page_icon="💧")
 
-# Inyección de CSS (Fondo Oscuro + Letras Blancas/Doradas + Título Rojo)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800&display=swap');
 
-    /* Fondo general y Tipografía */
-    .stApp {
-        background-color: #000000;
-        color: #ffffff;
-        font-family: 'Montserrat', sans-serif;
-    }
-    
-    /* Forzar que el texto base sea blanco */
-    p, span, label, div, li {
-        color: #ffffff !important;
-    }
+    .stApp { background-color: #000000; color: #ffffff; font-family: 'Montserrat', sans-serif; }
+    p, span, label, div, li { color: #ffffff !important; }
 
-    /* Subtítulos en Dorado */
     h2, h3, h4, h5, h6 {
         color: #d4af37 !important;
         font-family: 'Montserrat', sans-serif;
@@ -33,7 +22,6 @@ st.markdown("""
         text-transform: uppercase;
     }
     
-    /* TÍTULO PERSONALIZADO (Ilich) */
     .titulo-personalizado {
         color: #FF0000 !important;
         font-family: 'Montserrat', sans-serif;
@@ -45,24 +33,10 @@ st.markdown("""
         padding-bottom: 20px;
     }
     
-    /* Barra lateral */
-    [data-testid="stSidebar"] {
-        background-color: #0a0a0a;
-        border-right: 1px solid #d4af3733;
-    }
+    [data-testid="stSidebar"] { background-color: #0a0a0a; border-right: 1px solid #d4af3733; }
+    [data-testid="stMetricValue"] { color: #d4af37 !important; font-size: 2.2rem !important; font-weight: 600 !important; }
+    [data-testid="stMetricLabel"] { color: #ffffff !important; font-size: 0.9rem !important; text-transform: uppercase; letter-spacing: 1px; }
     
-    /* Cajas de métricas */
-    [data-testid="stMetricValue"] {
-        color: #d4af37 !important;
-        font-size: 2.2rem !important;
-        font-weight: 600 !important;
-    }
-    [data-testid="stMetricLabel"] {
-        color: #ffffff !important;
-        font-size: 0.9rem !important;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
     div[data-testid="metric-container"] {
         background-color: #111111;
         border: 1px solid #d4af3744;
@@ -70,53 +44,26 @@ st.markdown("""
         border-radius: 4px;
     }
     
-    /* Estilo para los bloques de código (Copiado de CLABE) */
-    div.stCodeBlock {
-        background-color: #111111 !important;
-        border: 1px solid #d4af37 !important;
-        border-radius: 0px !important;
-    }
-    code {
-        color: #d4af37 !important;
-        font-size: 1.1rem !important;
-    }
-
-    /* Ajuste de Tablas para evitar letras negras */
-    .stDataFrame [data-testid="stTable"] {
-        background-color: #000000 !important;
-    }
+    div.stCodeBlock { background-color: #111111 !important; border: 1px solid #d4af37 !important; border-radius: 0px !important; }
+    code { color: #d4af37 !important; font-size: 1.1rem !important; }
+    .stDataFrame [data-testid="stTable"] { background-color: #000000 !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# Renderizado del Título Personalizado
 st.markdown('<h1 class="titulo-personalizado">¿CUÁNTO TE PAGARON ILICH?</h1>', unsafe_allow_html=True)
 st.markdown("---")
 
 # ==========================================
 # CONSTANTES Y CLABES
 # ==========================================
-DIEZMO_PCT = 0.10
-GASTO_PCT = 0.65
-DEUDA_PCT = 0.10
-AHORRO_PCT = 0.10
-INVERSION_PCT = 0.15
-
-# Metas Mínimas Inamovibles
-META_RENTA = 875.0
-META_TRANSPORTE = 430.0
-META_NOVIA = 500.0
-META_VIAJES = 300.0
+DIEZMO_PCT = 0.10; GASTO_PCT = 0.65; DEUDA_PCT = 0.10; AHORRO_PCT = 0.10; INVERSION_PCT = 0.15
+META_RENTA = 875.0; META_TRANSPORTE = 430.0; META_NOVIA = 500.0; META_VIAJES = 300.0
 meta_inamovibles_total = META_RENTA + META_TRANSPORTE + META_NOVIA + META_VIAJES
 
-# 🏦 CLABES REALES
 CUENTAS = {
-    "NU (Cajita)": "638180000126660124",
-    "NU (Gasto)": "638180000126660124",
-    "GBM+": "601180400073884389",
-    "SPIN": "728969000033664690",
-    "Cuenta Diezmo": "PENDIENTE",
-    "Pago Deuda": "PENDIENTE",
-    "CETES": "PENDIENTE"
+    "NU (Cajita)": "638180000126660124", "NU (Gasto)": "638180000126660124",
+    "GBM+": "601180400073884389", "SPIN": "728969000033664690",
+    "Cuenta Diezmo": "PENDIENTE", "Pago Deuda": "PENDIENTE", "CETES": "PENDIENTE"
 }
 
 # ==========================================
@@ -130,24 +77,18 @@ with st.sidebar:
 # ==========================================
 # LÓGICA (BACKEND)
 # ==========================================
-# Diezmos
-diezmo_fijo = ingreso_fijo_bruto * DIEZMO_PCT
-fijo_neto = ingreso_fijo_bruto - diezmo_fijo
-diezmo_var = ingreso_var_bruto * DIEZMO_PCT
-var_neto = ingreso_var_bruto - diezmo_var
+diezmo_fijo = ingreso_fijo_bruto * DIEZMO_PCT; fijo_neto = ingreso_fijo_bruto - diezmo_fijo
+diezmo_var = ingreso_var_bruto * DIEZMO_PCT; var_neto = ingreso_var_bruto - diezmo_var
 
 f_renta = f_transp = f_novia = f_viajes = f_deuda = f_emerg = f_colchon = f_retiro = 0
 v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_retiro = 0
 
-# Distribución FIJO
 capacidad_gasto_fijo = fijo_neto * GASTO_PCT
 if capacidad_gasto_fijo >= meta_inamovibles_total:
     p_renta, p_transp = META_RENTA/meta_inamovibles_total, META_TRANSPORTE/meta_inamovibles_total
     p_novia, p_viajes = META_NOVIA/meta_inamovibles_total, META_VIAJES/meta_inamovibles_total
-    
     f_renta, f_transp = capacidad_gasto_fijo*p_renta, capacidad_gasto_fijo*p_transp
     f_novia, f_viajes = capacidad_gasto_fijo*p_novia, capacidad_gasto_fijo*p_viajes
-    
     f_deuda, f_retiro = fijo_neto*DEUDA_PCT, fijo_neto*INVERSION_PCT
     f_emerg, f_colchon = (fijo_neto*AHORRO_PCT)*0.5, (fijo_neto*AHORRO_PCT)*0.5
     modo_actual = "Crecimiento Desbloqueado 🚀"
@@ -163,7 +104,6 @@ else:
     f_retiro = f_aux
     modo_actual = "Cascada (Rescatando) ⚠️"
 
-# Distribución VARIABLE
 v_aux = var_neto
 v_renta = min(v_aux, max(0, META_RENTA - f_renta)); v_aux -= v_renta
 v_transp = min(v_aux, max(0, META_TRANSPORTE - f_transp)); v_aux -= v_transp
@@ -175,7 +115,7 @@ if v_aux > 0:
     v_deuda, v_retiro = v_aux * 0.30, v_aux * 0.20
     v_emerg, v_colchon = v_ahorro_t * 0.50, v_ahorro_t * 0.50
 
-# Dataframe y Cálculo de Profit
+# Creación de DataFrame
 data = [
     {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Meta": 0, "Fijo": diezmo_fijo, "Variable": diezmo_var},
     {"Concepto": "Renta", "Plataforma": "NU (Cajita)", "Meta": META_RENTA, "Fijo": f_renta, "Variable": v_renta},
@@ -189,18 +129,45 @@ data = [
 ]
 df = pd.DataFrame(data)
 df["Total"] = df["Fijo"] + df["Variable"]
-# Profit = Lo que excedió la meta mínima
 df["Profit"] = df.apply(lambda x: max(0, x["Total"] - x["Meta"]) if x["Meta"] > 0 else 0, axis=1)
+
+# ==========================================
+# CÁLCULOS SUPERIORES (S&P 500)
+# ==========================================
+ingreso_total_bruto = ingreso_fijo_bruto + ingreso_var_bruto
+ahorro_semanal_generado = f_emerg + v_emerg + f_colchon + v_colchon
+retiro_total_semanal = f_retiro + v_retiro
+
+# Cálculo Interés Compuesto S&P 500 (10% anual a 30 años)
+r_semanal = 0.10 / 52
+semanas_30_anios = 30 * 52
+proyeccion_sp500 = retiro_total_semanal * (((1 + r_semanal)**semanas_30_anios) - 1) / r_semanal
 
 # ==========================================
 # FRONTEND
 # ==========================================
+# Fila 1: Resumen General
+st.markdown("<h4 style='color:#ffffff; text-align:center;'>RESUMEN GENERAL</h4>", unsafe_allow_html=True)
+r1, r2, r3 = st.columns(3)
+with r1: st.metric("INGRESO TOTAL BRUTO", f"${ingreso_total_bruto:,.2f}")
+with r2: st.metric("AHORRO GENERADO (EMERG. + COLCHÓN)", f"${ahorro_semanal_generado:,.2f}")
+with r3: 
+    st.markdown(f"""
+        <div data-testid='metric-container'>
+            <label data-testid='stMetricLabel'>PROYECCIÓN S&P 500 (A 30 AÑOS)</label>
+            <div data-testid='stMetricValue' style='color: #00E676 !important;'>${proyeccion_sp500:,.2f}</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("---")
+
+# Fila 2: Estatus del Sistema
+st.markdown("<h4 style='color:#ffffff; text-align:center;'>MÉTRICAS DEL SISTEMA</h4>", unsafe_allow_html=True)
 m1, m2, m3 = st.columns(3)
 with m1: st.metric("NETO SEMANAL", f"${(fijo_neto + var_neto):,.2f}")
-with m2: st.metric("SISTEMA", modo_actual)
+with m2: st.metric("ESTADO ACTUAL", modo_actual)
 with m3: 
     total_profit = df['Profit'].sum()
-    # Si hay profit, forzamos que se vea verde en la métrica superior también
     if total_profit > 0:
         st.markdown(f"""
             <div data-testid='metric-container'>
@@ -213,33 +180,29 @@ with m3:
 
 st.markdown("---")
 
-# --- TABLA CON ESTILOS CONDICIONALES ---
+# --- TABLA CON ESTILOS CORREGIDOS (Orden de mapeo antes del formato) ---
 st.subheader("Desglose de Capital")
 
-# Funciones de estilo para Pandas
 def format_general(val):
-    if isinstance(val, (int, float)) and val > 0: return 'color: #d4af37' # Dorado para números
-    return 'color: #ffffff' # Blanco para texto y ceros
+    return 'color: #d4af37' if val > 0 else 'color: #ffffff'
 
 def format_profit(val):
-    if isinstance(val, (int, float)) and val > 0: 
-        return 'color: #00E676; font-weight: bold;' # Verde neón brillante para Profit
-    return 'color: #ffffff'
+    return 'color: #00E676; font-weight: bold;' if val > 0 else 'color: #ffffff'
 
-# Aplicamos los estilos
-styled_df = df.style.format({
-    "Meta": "${:,.2f}", "Fijo": "${:,.2f}", "Variable": "${:,.2f}", 
-    "Total": "${:,.2f}", "Profit": "${:,.2f}"
-})\
-.map(format_general, subset=["Meta", "Fijo", "Variable", "Total"])\
-.map(format_profit, subset=["Profit"])\
-.set_properties(**{'background-color': '#000000', 'color': '#ffffff', 'border-color': '#d4af3722'})
+# AQUÍ SE CORRIGE EL BUG: Se mapea el valor numérico ANTES de volverlo texto
+styled_df = df.style.map(format_general, subset=["Meta", "Fijo", "Variable", "Total"])\
+    .map(format_profit, subset=["Profit"])\
+    .format({
+        "Meta": "${:,.2f}", "Fijo": "${:,.2f}", "Variable": "${:,.2f}", 
+        "Total": "${:,.2f}", "Profit": "${:,.2f}"
+    })\
+    .set_properties(**{'background-color': '#000000', 'color': '#ffffff', 'border-color': '#d4af3722'})
 
 st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
-# --- TRANSFERENCIAS (CLABES COPIABLES) ---
+# --- TRANSFERENCIAS ---
 c1, c_esp, c2 = st.columns([1, 0.1, 1.2])
 
 with c1:
@@ -248,13 +211,10 @@ with c1:
     df_bancos = df_bancos[df_bancos["Total"] > 0]
     
     for _, row in df_bancos.iterrows():
-        banco = row["Plataforma"]
-        monto = row["Total"]
-        clabe_nuda = CUENTAS.get(banco, "PENDIENTE")
+        banco = row["Plataforma"]; monto = row["Total"]; clabe_nuda = CUENTAS.get(banco, "PENDIENTE")
         
         st.markdown(f"<p style='margin-bottom:0px; font-weight:600; color:#d4af37;'>{banco}</p>", unsafe_allow_html=True)
         st.markdown(f"<p style='font-size:1.2rem; margin-top:0px;'>Total: <b style='color:#00E676;'>${monto:,.2f}</b></p>", unsafe_allow_html=True)
-        # ÚNICAMENTE LA CLABE ES COPIABLE
         st.code(clabe_nuda, language=None)
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -263,7 +223,7 @@ with c2:
     fig = px.pie(df_bancos, values='Total', names='Plataforma', hole=0.7,
                  color_discrete_sequence=['#d4af37', '#ffffff', '#444444', '#888888', '#00E676'])
     fig.update_layout(
-        template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)', font=dict(family="Montserrat", color="#ffffff")
+        template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+        font=dict(family="Montserrat", color="#ffffff")
     )
     st.plotly_chart(fig, use_container_width=True)
