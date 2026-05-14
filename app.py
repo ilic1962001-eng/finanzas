@@ -3,82 +3,34 @@ import pandas as pd
 import plotly.express as px
 
 # ==========================================
-# CONFIGURACIÓN PREMIUM Y ESTILOS
+# CONFIGURACIÓN DE LA PÁGINA
 # ==========================================
-st.set_page_config(page_title="Waterfall Gold Edition", layout="wide")
+st.set_page_config(page_title="Dashboard Cascada Pro", layout="wide", page_icon="💧")
 
-# Inyección de CSS para Tema Black & Gold con Tipografía Premium
+# TÍTULO PERSONALIZADO: ROJO, MAYÚSCULAS Y ESTILIZADO
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap');
-
-    /* Fondo general y Tipografía */
-    .stApp {
-        background-color: #000000;
-        color: #ffffff;
-        font-family: 'Montserrat', sans-serif;
-    }
-    
-    /* Forzar que TODO el texto sea blanco o dorado */
-    p, span, label, div, li {
-        color: #ffffff !important;
-    }
-
-    /* Títulos en Dorado */
-    h1, h2, h3, h4, h5, h6 {
-        color: #d4af37 !important;
-        font-family: 'Montserrat', sans-serif;
-        font-weight: 600;
+    .titulo-personalizado {
+        color: #FF0000;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 42px;
+        font-weight: 800;
+        text-align: center;
+        text-transform: uppercase;
         letter-spacing: 2px;
-        text-transform: uppercase;
-    }
-    
-    /* Barra lateral */
-    [data-testid="stSidebar"] {
-        background-color: #0a0a0a;
-        border-right: 1px solid #d4af3733;
-    }
-    
-    /* Cajas de métricas */
-    [data-testid="stMetricValue"] {
-        color: #d4af37 !important;
-        font-size: 2.2rem !important;
-        font-weight: 600 !important;
-    }
-    [data-testid="stMetricLabel"] {
-        color: #ffffff !important;
-        font-size: 0.9rem !important;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    div[data-testid="metric-container"] {
-        background-color: #111111;
-        border: 1px solid #d4af3744;
-        padding: 20px;
-        border-radius: 4px;
-    }
-    
-    /* Estilo para los bloques de código (Copiado de CLABE) */
-    div.stCodeBlock {
-        background-color: #111111 !important;
-        border: 1px solid #d4af37 !important;
-        border-radius: 0px !important;
-    }
-    code {
-        color: #d4af37 !important;
-        font-size: 1.1rem !important;
-    }
-
-    /* Ajuste de Tablas para evitar letras negras */
-    .stDataFrame [data-testid="stTable"] {
-        background-color: #000000 !important;
+        padding-bottom: 20px;
     }
     </style>
+    <h1 class="titulo-personalizado">¿CUÁNTO TE PAGARON ILICH?</h1>
     """, unsafe_allow_html=True)
 
-st.title("Control Financiero: Cascada Pro")
 st.markdown("---")
 
+# ==========================================
+# EL RESTO DE TU CÓDIGO (ENTRADA DE DATOS...)
+# ==========================================
+st.sidebar.header("💸 Ingresos de la Semana")
+# ... continúa el código anterior
 # ==========================================
 # CONSTANTES Y CLABES
 # ==========================================
