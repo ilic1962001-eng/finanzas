@@ -5,60 +5,73 @@ import plotly.express as px
 # ==========================================
 # CONFIGURACIÓN PREMIUM Y ESTILOS
 # ==========================================
-st.set_page_config(page_title="Control Financiero", layout="wide")
+st.set_page_config(page_title="Waterfall Gold Edition", layout="wide")
 
-# Inyección de CSS para Tema Black & Gold
+# Inyección de CSS para Tema Black & Gold con Tipografía Premium
 st.markdown("""
     <style>
-    /* Fondo general oscuro */
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap');
+
+    /* Fondo general y Tipografía */
     .stApp {
-        background-color: #0a0a0a;
-        color: #e0e0e0;
+        background-color: #000000;
+        color: #ffffff;
+        font-family: 'Montserrat', sans-serif;
     }
     
-    /* Títulos y subtítulos en dorado */
+    /* Forzar que TODO el texto sea blanco o dorado */
+    p, span, label, div, li {
+        color: #ffffff !important;
+    }
+
+    /* Títulos en Dorado */
     h1, h2, h3, h4, h5, h6 {
         color: #d4af37 !important;
-        font-family: 'Inter', sans-serif;
-        font-weight: 300;
-        letter-spacing: 1px;
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
     }
     
-    /* Barra lateral oscuro carbón */
+    /* Barra lateral */
     [data-testid="stSidebar"] {
-        background-color: #121212;
-        border-right: 1px solid #332a0d;
+        background-color: #0a0a0a;
+        border-right: 1px solid #d4af3733;
     }
     
     /* Cajas de métricas */
     [data-testid="stMetricValue"] {
         color: #d4af37 !important;
         font-size: 2.2rem !important;
+        font-weight: 600 !important;
     }
     [data-testid="stMetricLabel"] {
-        color: #a0a0a0 !important;
-        font-size: 1.1rem !important;
+        color: #ffffff !important;
+        font-size: 0.9rem !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
     div[data-testid="metric-container"] {
-        background-color: #171717;
-        border: 1px solid #332a0d;
+        background-color: #111111;
+        border: 1px solid #d4af3744;
         padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.05);
+        border-radius: 4px;
     }
     
-    /* Separadores dorados tenues */
-    hr {
-        border-color: #d4af37 !important;
-        opacity: 0.2;
-        margin-top: 30px;
-        margin-bottom: 30px;
-    }
-    
-    /* Ajuste para los bloques de código (botón de copiar) */
+    /* Estilo para los bloques de código (Copiado de CLABE) */
     div.stCodeBlock {
-        background-color: #1a1a1a !important;
-        border: 1px solid #332a0d !important;
+        background-color: #111111 !important;
+        border: 1px solid #d4af37 !important;
+        border-radius: 0px !important;
+    }
+    code {
+        color: #d4af37 !important;
+        font-size: 1.1rem !important;
+    }
+
+    /* Ajuste de Tablas para evitar letras negras */
+    .stDataFrame [data-testid="stTable"] {
+        background-color: #000000 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -67,72 +80,64 @@ st.title("Control Financiero: Cascada Pro")
 st.markdown("---")
 
 # ==========================================
-# PARÁMETROS DEL SISTEMA, METAS Y CUENTAS
+# CONSTANTES Y CLABES
 # ==========================================
+# Configuración de Porcentajes
 DIEZMO_PCT = 0.10
 GASTO_PCT = 0.65
 DEUDA_PCT = 0.10
 AHORRO_PCT = 0.10
 INVERSION_PCT = 0.15
 
-# Metas Mínimas Inamovibles
+# Metas Inamovibles Hardcoded
 META_RENTA = 875.0
 META_TRANSPORTE = 430.0
 META_NOVIA = 500.0
 META_VIAJES = 300.0
 meta_inamovibles_total = META_RENTA + META_TRANSPORTE + META_NOVIA + META_VIAJES
 
-# 🏦 DICCIONARIO DE CUENTAS / CLABES (Sustituye por las tuyas)
+# 🏦 TUS CLABES REALES
 CUENTAS = {
-    "Cuenta Diezmo": "CLABE_DIEZMO_AQUI",
-    "NU (Cajita)": "CLABE_NU_CAJITA_AQUI",
-    "NU (Gasto)": "CLABE_NU_GASTO_AQUI",
-    "SPIN": "CLABE_SPIN_AQUI",
-    "Pago Deuda": "CLABE_DEUDA_AQUI",
-    "CETES": "CLABE_CETES_AQUI",
-    "GBM+": "CLABE_GBM_AQUI"
+    "NU (Cajita)": "638180000126660124",
+    "NU (Gasto)": "638180000126660124",
+    "GBM+": "601180400073884389",
+    "SPIN": "728969000033664690",
+    "Cuenta Diezmo": "PENDIENTE",
+    "Pago Deuda": "PENDIENTE",
+    "CETES": "PENDIENTE"
 }
 
 # ==========================================
-# SIDEBAR - ENTRADA DE DATOS
+# SIDEBAR
 # ==========================================
 with st.sidebar:
-    st.header("Flujo de Efectivo")
-    st.markdown("<br>", unsafe_allow_html=True)
-    ingreso_fijo_bruto = st.number_input("Ingreso FIJO Semanal ($)", min_value=0.0, value=0.0, step=100.0)
-    st.markdown("<br>", unsafe_allow_html=True)
-    ingreso_var_bruto = st.number_input("Ingreso VARIABLE Semanal ($)", min_value=0.0, value=0.0, step=100.0)
+    st.markdown("<h3 style='color:#d4af37;'>Capital Semanal</h3>", unsafe_allow_html=True)
+    ingreso_fijo_bruto = st.number_input("FIJO ($)", min_value=0.0, value=0.0, step=100.0)
+    ingreso_var_bruto = st.number_input("VARIABLE ($)", min_value=0.0, value=0.0, step=100.0)
 
 # ==========================================
-# LÓGICA DE CÁLCULO (BACKEND)
+# LÓGICA (BACKEND)
 # ==========================================
+# Diezmos
 diezmo_fijo = ingreso_fijo_bruto * DIEZMO_PCT
 fijo_neto = ingreso_fijo_bruto - diezmo_fijo
-
 diezmo_var = ingreso_var_bruto * DIEZMO_PCT
 var_neto = ingreso_var_bruto - diezmo_var
 
+# Inicialización
 f_renta = f_transp = f_novia = f_viajes = f_deuda = f_emerg = f_colchon = f_retiro = 0
 v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_retiro = 0
 
+# Distribución FIJO
 capacidad_gasto_fijo = fijo_neto * GASTO_PCT
-
 if capacidad_gasto_fijo >= meta_inamovibles_total:
-    p_renta = META_RENTA / meta_inamovibles_total
-    p_transp = META_TRANSPORTE / meta_inamovibles_total
-    p_novia = META_NOVIA / meta_inamovibles_total
-    p_viajes = META_VIAJES / meta_inamovibles_total
-
-    f_renta = capacidad_gasto_fijo * p_renta
-    f_transp = capacidad_gasto_fijo * p_transp
-    f_novia = capacidad_gasto_fijo * p_novia
-    f_viajes = capacidad_gasto_fijo * p_viajes
-    
-    f_deuda = fijo_neto * DEUDA_PCT
-    f_emerg = (fijo_neto * AHORRO_PCT) * 0.50
-    f_colchon = (fijo_neto * AHORRO_PCT) * 0.50
-    f_retiro = fijo_neto * INVERSION_PCT
-    modo_actual = "Crecimiento Proporcional"
+    p_renta, p_transp = META_RENTA/meta_inamovibles_total, META_TRANSPORTE/meta_inamovibles_total
+    p_novia, p_viajes = META_NOVIA/meta_inamovibles_total, META_VIAJES/meta_inamovibles_total
+    f_renta, f_transp = capacidad_gasto_fijo*p_renta, capacidad_gasto_fijo*p_transp
+    f_novia, f_viajes = capacidad_gasto_fijo*p_novia, capacidad_gasto_fijo*p_viajes
+    f_deuda, f_retiro = fijo_neto*DEUDA_PCT, fijo_neto*INVERSION_PCT
+    f_emerg, f_colchon = (fijo_neto*AHORRO_PCT)*0.5, (fijo_neto*AHORRO_PCT)*0.5
+    modo_actual = "Crecimiento"
 else:
     f_aux = fijo_neto
     f_renta = min(f_aux, META_RENTA); f_aux -= f_renta
@@ -143,26 +148,21 @@ else:
     f_emerg = min(f_aux, 250.0); f_aux -= f_emerg
     f_colchon = min(f_aux, 250.0); f_aux -= f_colchon
     f_retiro = f_aux
-    modo_actual = "Cascada (Prioridad Mínimos)"
+    modo_actual = "Cascada"
 
+# Distribución VARIABLE (Rescate + 50/30/20)
 v_aux = var_neto
-
 v_renta = min(v_aux, max(0, META_RENTA - f_renta)); v_aux -= v_renta
 v_transp = min(v_aux, max(0, META_TRANSPORTE - f_transp)); v_aux -= v_transp
 v_novia = min(v_aux, max(0, META_NOVIA - f_novia)); v_aux -= v_novia
 v_viajes = min(v_aux, max(0, META_VIAJES - f_viajes)); v_aux -= v_viajes
 
 if v_aux > 0:
-    v_ahorro_total = v_aux * 0.50
-    v_deuda = v_aux * 0.30
-    v_retiro = v_aux * 0.20
-    
-    v_emerg = v_ahorro_total * 0.50
-    v_colchon = v_ahorro_total * 0.50
+    v_ahorro_t = v_aux * 0.50
+    v_deuda, v_retiro = v_aux * 0.30, v_aux * 0.20
+    v_emerg, v_colchon = v_ahorro_t * 0.50, v_ahorro_t * 0.50
 
-# ==========================================
-# CONSTRUCCIÓN DE LA TABLA Y PROFIT
-# ==========================================
+# Dataframe
 data = [
     {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Meta": 0, "Fijo": diezmo_fijo, "Variable": diezmo_var},
     {"Concepto": "Renta", "Plataforma": "NU (Cajita)", "Meta": META_RENTA, "Fijo": f_renta, "Variable": v_renta},
@@ -174,95 +174,60 @@ data = [
     {"Concepto": "Colchón", "Plataforma": "NU (Cajita)", "Meta": 0, "Fijo": f_colchon, "Variable": v_colchon},
     {"Concepto": "Retiro/Bolsa", "Plataforma": "GBM+", "Meta": 0, "Fijo": f_retiro, "Variable": v_retiro},
 ]
-
 df = pd.DataFrame(data)
 df["Total"] = df["Fijo"] + df["Variable"]
 df["Profit"] = df.apply(lambda x: max(0, x["Total"] - x["Meta"]) if x["Meta"] > 0 else 0, axis=1)
 
 # ==========================================
-# VISUALIZACIÓN FRONTEND
+# FRONTEND
 # ==========================================
-
-if (fijo_neto + var_neto) < meta_inamovibles_total and (ingreso_fijo_bruto + ingreso_var_bruto) > 0:
-    faltante = meta_inamovibles_total - (fijo_neto + var_neto)
-    st.error(f"DÉFICIT DETECTADO: Faltan ${faltante:,.2f} para cubrir las metas inamovibles.")
-    st.markdown("<br>", unsafe_allow_html=True)
-
-# --- PANEL DE MÉTRICAS ---
 m1, m2, m3 = st.columns(3)
-with m1:
-    st.metric("Total Neto Semanal", f"${(fijo_neto + var_neto):,.2f}")
-with m2:
-    st.metric("Estado del Sistema", modo_actual)
-with m3:
-    total_profit = df["Profit"].sum()
-    st.metric("Profit Total (Excedente)", f"${total_profit:,.2f}")
+with m1: st.metric("NETO SEMANAL", f"${(fijo_neto + var_neto):,.2f}")
+with m2: st.metric("SISTEMA", modo_actual)
+with m3: st.metric("PROFIT GENERADO", f"${df['Profit'].sum():,.2f}")
 
 st.markdown("---")
 
-# --- TABLA PRINCIPAL FORZADA A MODO OSCURO ---
-st.subheader("Desglose de Asignación")
-st.markdown("<br>", unsafe_allow_html=True)
+# Tabla con Estilo Dorado Forzado y Letras Blancas
+st.subheader("Desglose de Capital")
+def style_table(val):
+    if isinstance(val, (int, float)) and val > 0: return 'color: #d4af37'
+    return 'color: #ffffff'
 
-def style_profit_and_dark_mode(val):
-    # Fuerza letras blancas y si es profit > 0, lo pinta dorado
-    color = '#d4af37' if isinstance(val, (int, float)) and val > 0 else '#e0e0e0'
-    return f'color: {color}'
-
-# Aplicamos estilos generales a la tabla entera para evitar letras negras
-styled_df = df.style.format({
-    "Meta": "${:,.2f}", "Fijo": "${:,.2f}", 
-    "Variable": "${:,.2f}", "Total": "${:,.2f}", "Profit": "${:,.2f}"
-}).map(style_profit_and_dark_mode, subset=["Profit"])\
-  .set_properties(**{
-      'background-color': '#121212', 
-      'color': '#e0e0e0', 
-      'border-color': '#332a0d'
-  })
-
-st.dataframe(styled_df, use_container_width=True, hide_index=True)
+st.dataframe(
+    df.style.format({"Meta": "${:,.2f}", "Fijo": "${:,.2f}", "Variable": "${:,.2f}", "Total": "${:,.2f}", "Profit": "${:,.2f}"})
+    .map(style_table, subset=["Profit"])
+    .set_properties(**{'background-color': '#000000', 'color': '#ffffff', 'border-color': '#d4af3722'}),
+    use_container_width=True, hide_index=True
+)
 
 st.markdown("---")
 
-# --- DISTRIBUCIÓN POR BANCO Y TRANSFERENCIAS ---
-c1, c_espacio, c2 = st.columns([1, 0.1, 1.2])
-
-df_bancos = df.groupby("Plataforma")["Total"].sum().reset_index()
-# Filtramos los bancos que tienen $0 para no estorbar
-df_bancos = df_bancos[df_bancos["Total"] > 0]
+# Transferencias y Gráfico
+c1, c_esp, c2 = st.columns([1, 0.1, 1.2])
 
 with c1:
-    st.subheader("Bancos (Clic para copiar)")
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.subheader("🏦 CLABEs (Copiables)")
+    df_bancos = df.groupby("Plataforma")["Total"].sum().reset_index()
+    df_bancos = df_bancos[df_bancos["Total"] > 0]
     
     for _, row in df_bancos.iterrows():
         banco = row["Plataforma"]
         monto = row["Total"]
-        cuenta = CUENTAS.get(banco, "Falta_CLABE")
+        clabe_nuda = CUENTAS.get(banco, "PENDIENTE")
         
-        # Bloque visual de la transferencia
-        st.markdown(f"**{banco}**: `${monto:,.2f}`")
-        # Cuadro de código con botón nativo de copiar
-        texto_copiar = f"{cuenta} | Monto: ${monto:,.2f}"
-        st.code(texto_copiar, language="text")
+        st.markdown(f"<p style='margin-bottom:0px; font-weight:600; color:#d4af37;'>{banco}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='font-size:1.2rem; margin-top:0px;'>Total: <b>${monto:,.2f}</b></p>", unsafe_allow_html=True)
+        # ÚNICAMENTE LA CLABE ES COPIABLE
+        st.code(clabe_nuda, language=None)
         st.markdown("<br>", unsafe_allow_html=True)
-        
+
 with c2:
-    st.subheader("Proporción por Destino")
-    colores_premium = ['#d4af37', '#aa8c2c', '#ebd57d', '#66541a', '#8a7322', '#f2df96']
-    fig = px.pie(
-        df_bancos, 
-        values='Total', 
-        names='Plataforma', 
-        hole=0.6,
-        color_discrete_sequence=colores_premium
-    )
+    st.subheader("Distribución Visual")
+    fig = px.pie(df_bancos, values='Total', names='Plataforma', hole=0.7,
+                 color_discrete_sequence=['#d4af37', '#ffffff', '#444444', '#888888'])
     fig.update_layout(
-        template="plotly_dark",
-        plot_bgcolor='rgba(0,0,0,0)',
-        paper_bgcolor='rgba(0,0,0,0)',
-        margin=dict(t=20, b=20, l=0, r=0),
-        font=dict(color='#a0a0a0', size=14),
-        showlegend=True
+        template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)', font=dict(family="Montserrat", color="#ffffff")
     )
     st.plotly_chart(fig, use_container_width=True)
