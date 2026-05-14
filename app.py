@@ -21,13 +21,6 @@ st.sidebar.markdown("---")
 st.sidebar.header("🎯 Metas de la Cascada")
 st.sidebar.caption("Prioridad 1 a 7. El ingreso fijo llena estas cubetas en orden.")
 
-meta_renta = st.sidebar.number_input("1. Renta (Meta: 3500/mes)", value=875.0, step=25.0)
-meta_transporte = st.sidebar.number_input("2. Transporte", value=430.0, step=25.0) # <--- ACTUALIZADO A 430
-meta_novia = st.sidebar.number_input("3. Novia", value=500.0, step=25.0)
-meta_viajes = st.sidebar.number_input("4. Viajes/Visitas", value=300.0, step=25.0)
-meta_deuda = st.sidebar.number_input("5. Deuda", value=400.0, step=25.0)
-meta_emergencias = st.sidebar.number_input("6. Emergencias (CETES)", value=250.0, step=25.0)
-meta_colchon = st.sidebar.number_input("7. Colchón", value=250.0, step=25.0)
 
 diezmo_pct = 0.10
 # ==========================================
