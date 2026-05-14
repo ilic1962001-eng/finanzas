@@ -33,7 +33,7 @@ st.markdown("""
     /* Cajas de métricas */
     [data-testid="stMetricValue"] {
         color: #d4af37 !important;
-        font-size: 2.5rem !important;
+        font-size: 2.2rem !important;
     }
     [data-testid="stMetricLabel"] {
         color: #a0a0a0 !important;
@@ -42,7 +42,7 @@ st.markdown("""
     div[data-testid="metric-container"] {
         background-color: #171717;
         border: 1px solid #332a0d;
-        padding: 25px;
+        padding: 20px;
         border-radius: 8px;
         box-shadow: 0 4px 15px rgba(212, 175, 55, 0.05);
     }
@@ -51,8 +51,14 @@ st.markdown("""
     hr {
         border-color: #d4af37 !important;
         opacity: 0.2;
-        margin-top: 40px;
-        margin-bottom: 40px;
+        margin-top: 30px;
+        margin-bottom: 30px;
+    }
+    
+    /* Ajuste para los bloques de código (botón de copiar) */
+    div.stCodeBlock {
+        background-color: #1a1a1a !important;
+        border: 1px solid #332a0d !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -61,7 +67,7 @@ st.title("Control Financiero: Cascada Pro")
 st.markdown("---")
 
 # ==========================================
-# PARÁMETROS DEL SISTEMA Y METAS CONSTANTES
+# PARÁMETROS DEL SISTEMA, METAS Y CUENTAS
 # ==========================================
 DIEZMO_PCT = 0.10
 GASTO_PCT = 0.65
@@ -69,12 +75,23 @@ DEUDA_PCT = 0.10
 AHORRO_PCT = 0.10
 INVERSION_PCT = 0.15
 
-# Metas Mínimas Inamovibles (Hardcoded)
+# Metas Mínimas Inamovibles
 META_RENTA = 875.0
 META_TRANSPORTE = 430.0
 META_NOVIA = 500.0
 META_VIAJES = 300.0
 meta_inamovibles_total = META_RENTA + META_TRANSPORTE + META_NOVIA + META_VIAJES
+
+# 🏦 DICCIONARIO DE CUENTAS / CLABES (Sustituye por las tuyas)
+CUENTAS = {
+    "Cuenta Diezmo": "CLABE_DIEZMO_AQUI",
+    "NU (Cajita)": "CLABE_NU_CAJITA_AQUI",
+    "NU (Gasto)": "CLABE_NU_GASTO_AQUI",
+    "SPIN": "CLABE_SPIN_AQUI",
+    "Pago Deuda": "CLABE_DEUDA_AQUI",
+    "CETES": "CLABE_CETES_AQUI",
+    "GBM+": "CLABE_GBM_AQUI"
+}
 
 # ==========================================
 # SIDEBAR - ENTRADA DE DATOS
@@ -89,22 +106,18 @@ with st.sidebar:
 # ==========================================
 # LÓGICA DE CÁLCULO (BACKEND)
 # ==========================================
-# 1. Diezmos
 diezmo_fijo = ingreso_fijo_bruto * DIEZMO_PCT
 fijo_neto = ingreso_fijo_bruto - diezmo_fijo
 
 diezmo_var = ingreso_var_bruto * DIEZMO_PCT
 var_neto = ingreso_var_bruto - diezmo_var
 
-# Inicialización de Sobres
 f_renta = f_transp = f_novia = f_viajes = f_deuda = f_emerg = f_colchon = f_retiro = 0
 v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_retiro = 0
 
-# --- PROCESAMIENTO DEL INGRESO FIJO ---
 capacidad_gasto_fijo = fijo_neto * GASTO_PCT
 
 if capacidad_gasto_fijo >= meta_inamovibles_total:
-    # MODO DESBLOQUEADO: Crecimiento proporcional
     p_renta = META_RENTA / meta_inamovibles_total
     p_transp = META_TRANSPORTE / meta_inamovibles_total
     p_novia = META_NOVIA / meta_inamovibles_total
@@ -121,7 +134,6 @@ if capacidad_gasto_fijo >= meta_inamovibles_total:
     f_retiro = fijo_neto * INVERSION_PCT
     modo_actual = "Crecimiento Proporcional"
 else:
-    # MODO CASCADA: Rellenando huecos
     f_aux = fijo_neto
     f_renta = min(f_aux, META_RENTA); f_aux -= f_renta
     f_transp = min(f_aux, META_TRANSPORTE); f_aux -= f_transp
@@ -133,7 +145,6 @@ else:
     f_retiro = f_aux
     modo_actual = "Cascada (Prioridad Mínimos)"
 
-# --- PROCESAMIENTO DEL INGRESO VARIABLE (RESCATE + 50/30/20) ---
 v_aux = var_neto
 
 v_renta = min(v_aux, max(0, META_RENTA - f_renta)); v_aux -= v_renta
@@ -150,7 +161,7 @@ if v_aux > 0:
     v_colchon = v_ahorro_total * 0.50
 
 # ==========================================
-# CONSTRUCCIÓN DE LA TABLA Y CÁLCULO DE PROFIT
+# CONSTRUCCIÓN DE LA TABLA Y PROFIT
 # ==========================================
 data = [
     {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Meta": 0, "Fijo": diezmo_fijo, "Variable": diezmo_var},
@@ -172,13 +183,12 @@ df["Profit"] = df.apply(lambda x: max(0, x["Total"] - x["Meta"]) if x["Meta"] > 
 # VISUALIZACIÓN FRONTEND
 # ==========================================
 
-# --- ALERTA DE DÉFICIT ---
 if (fijo_neto + var_neto) < meta_inamovibles_total and (ingreso_fijo_bruto + ingreso_var_bruto) > 0:
     faltante = meta_inamovibles_total - (fijo_neto + var_neto)
     st.error(f"DÉFICIT DETECTADO: Faltan ${faltante:,.2f} para cubrir las metas inamovibles.")
     st.markdown("<br>", unsafe_allow_html=True)
 
-# --- PANEL DE MÉTRICAS (Distribuido y amplio) ---
+# --- PANEL DE MÉTRICAS ---
 m1, m2, m3 = st.columns(3)
 with m1:
     st.metric("Total Neto Semanal", f"${(fijo_neto + var_neto):,.2f}")
@@ -190,42 +200,55 @@ with m3:
 
 st.markdown("---")
 
-# --- TABLA PRINCIPAL A ANCHO COMPLETO ---
+# --- TABLA PRINCIPAL FORZADA A MODO OSCURO ---
 st.subheader("Desglose de Asignación")
 st.markdown("<br>", unsafe_allow_html=True)
 
-# Resaltado sutil en dorado para el profit usando Pandas Styler
-def style_profit(val):
+def style_profit_and_dark_mode(val):
+    # Fuerza letras blancas y si es profit > 0, lo pinta dorado
     color = '#d4af37' if isinstance(val, (int, float)) and val > 0 else '#e0e0e0'
     return f'color: {color}'
 
-st.dataframe(
-    df.style.format({
-        "Meta": "${:,.2f}", "Fijo": "${:,.2f}", 
-        "Variable": "${:,.2f}", "Total": "${:,.2f}", "Profit": "${:,.2f}"
-    }).map(style_profit, subset=["Profit"]),
-    use_container_width=True,
-    hide_index=True,
-    height=350 # Le da más espacio vertical a la tabla
-)
+# Aplicamos estilos generales a la tabla entera para evitar letras negras
+styled_df = df.style.format({
+    "Meta": "${:,.2f}", "Fijo": "${:,.2f}", 
+    "Variable": "${:,.2f}", "Total": "${:,.2f}", "Profit": "${:,.2f}"
+}).map(style_profit_and_dark_mode, subset=["Profit"])\
+  .set_properties(**{
+      'background-color': '#121212', 
+      'color': '#e0e0e0', 
+      'border-color': '#332a0d'
+  })
+
+st.dataframe(styled_df, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
-# --- DISTRIBUCIÓN POR BANCO Y GRÁFICO (Lado a Lado con mucho respiro) ---
-c1, c_espacio, c2 = st.columns([1, 0.2, 1])
+# --- DISTRIBUCIÓN POR BANCO Y TRANSFERENCIAS ---
+c1, c_espacio, c2 = st.columns([1, 0.1, 1.2])
 
 df_bancos = df.groupby("Plataforma")["Total"].sum().reset_index()
+# Filtramos los bancos que tienen $0 para no estorbar
+df_bancos = df_bancos[df_bancos["Total"] > 0]
 
 with c1:
-    st.subheader("Transferencias Requeridas")
+    st.subheader("Bancos (Clic para copiar)")
     st.markdown("<br>", unsafe_allow_html=True)
-    # Mostramos los bancos como métricas verticales grandes
+    
     for _, row in df_bancos.iterrows():
-        st.metric(row["Plataforma"], f"${row['Total']:,.2f}")
+        banco = row["Plataforma"]
+        monto = row["Total"]
+        cuenta = CUENTAS.get(banco, "Falta_CLABE")
+        
+        # Bloque visual de la transferencia
+        st.markdown(f"**{banco}**: `${monto:,.2f}`")
+        # Cuadro de código con botón nativo de copiar
+        texto_copiar = f"{cuenta} | Monto: ${monto:,.2f}"
+        st.code(texto_copiar, language="text")
+        st.markdown("<br>", unsafe_allow_html=True)
         
 with c2:
     st.subheader("Proporción por Destino")
-    # Gráfico adaptado al tema oscuro y paleta dorada/tierra
     colores_premium = ['#d4af37', '#aa8c2c', '#ebd57d', '#66541a', '#8a7322', '#f2df96']
     fig = px.pie(
         df_bancos, 
