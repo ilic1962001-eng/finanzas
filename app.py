@@ -22,7 +22,7 @@ st.sidebar.header("🎯 Metas de la Cascada")
 st.sidebar.caption("Prioridad 1 a 7. El ingreso fijo llena estas cubetas en orden.")
 
 meta_renta = st.sidebar.number_input("1. Renta (Meta: 3500/mes)", value=875.0, step=25.0)
-meta_transporte = st.sidebar.number_input("2. Transporte", value=300.0, step=25.0)
+meta_transporte = st.sidebar.number_input("2. Transporte", value=430.0, step=25.0) # <--- ACTUALIZADO A 430
 meta_novia = st.sidebar.number_input("3. Novia", value=500.0, step=25.0)
 meta_viajes = st.sidebar.number_input("4. Viajes/Visitas", value=300.0, step=25.0)
 meta_deuda = st.sidebar.number_input("5. Deuda", value=400.0, step=25.0)
@@ -30,7 +30,6 @@ meta_emergencias = st.sidebar.number_input("6. Emergencias (CETES)", value=250.0
 meta_colchon = st.sidebar.number_input("7. Colchón", value=250.0, step=25.0)
 
 diezmo_pct = 0.10
-
 # ==========================================
 # PROCESAMIENTO DE FONDOS Y DIEZMO
 # ==========================================
@@ -175,11 +174,14 @@ st.dataframe(df_detalles.style.format(formato_moneda), use_container_width=True)
 # ==========================================
 with st.expander("⚖️ Auditoría: Comparativa vs Plan MATLAB"):
     f_neto = fijo_neto
-    # Se calculan las 7 categorías operativas/ahorro en base al ingreso fijo
-    obj_renta = (f_neto * 0.75) * 0.45 if f_neto > 0 else 0
-    obj_novia = (f_neto * 0.75) * 0.20 if f_neto > 0 else 0
+    
+    # Referencia inicial fija (Los mínimos inamovibles)
+    obj_renta = meta_renta
+    obj_transp = meta_transporte
+    obj_novia = meta_novia
+    
+    # Todo lo demás se reparte como estaba
     obj_viajes = (f_neto * 0.75) * 0.13 if f_neto > 0 else 0
-    obj_transp = (f_neto * 0.75) - (obj_renta + obj_novia + obj_viajes) if f_neto > 0 else 0
     obj_deuda_matlab = f_neto * 0.10 if f_neto > 0 else 0
     obj_ahorro_matlab = f_neto * 0.10 if f_neto > 0 else 0
     obj_emerg_matlab = obj_ahorro_matlab * 0.25
