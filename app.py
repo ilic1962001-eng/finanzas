@@ -46,8 +46,6 @@ st.markdown("""
     
     div.stCodeBlock { background-color: #111111 !important; border: 1px solid #d4af37 !important; border-radius: 0px !important; }
     code { color: #d4af37 !important; font-size: 1.1rem !important; }
-    
-    .stDataFrame [data-testid="stTable"] { background-color: #000000 !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -84,7 +82,6 @@ diezmo_var = ingreso_var_bruto * DIEZMO_PCT; var_neto = ingreso_var_bruto - diez
 f_renta = f_transp = f_novia = f_viajes = f_deuda = f_emerg = f_colchon = f_retiro = 0
 v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_retiro = 0
 
-# 1. Distribución FIJA
 capacidad_gasto_fijo = fijo_neto * GASTO_PCT
 if capacidad_gasto_fijo >= meta_inamovibles_total:
     p_renta, p_transp = META_RENTA/meta_inamovibles_total, META_TRANSPORTE/meta_inamovibles_total
@@ -104,27 +101,23 @@ else:
     f_colchon = min(f_aux, 250.0); f_aux -= f_colchon
     f_retiro = f_aux
 
-# 2. Distribución VARIABLE (Rescate)
 v_aux = var_neto
 v_renta = min(v_aux, max(0, META_RENTA - f_renta)); v_aux -= v_renta
 v_transp = min(v_aux, max(0, META_TRANSPORTE - f_transp)); v_aux -= v_transp
 v_novia = min(v_aux, max(0, META_NOVIA - f_novia)); v_aux -= v_novia
 v_viajes = min(v_aux, max(0, META_VIAJES - f_viajes)); v_aux -= v_viajes
 
-# 3. Excedente Variable (50/30/20)
 if v_aux > 0:
     v_ahorro_t = v_aux * 0.50
     v_deuda, v_retiro = v_aux * 0.30, v_aux * 0.20
     v_emerg, v_colchon = v_ahorro_t * 0.50, v_ahorro_t * 0.50
 
-# 4. Cálculos de Métricas Superiores
 rescate_total = v_renta + v_transp + v_novia + v_viajes
 texto_rescate = f"{(rescate_total / var_neto) * 100:.1f}%" if var_neto > 0 and rescate_total > 0 else "Nada"
 
 asignado_basicos = f_renta + v_renta + f_transp + v_transp + f_novia + v_novia + f_viajes + v_viajes
 deficit_basico = meta_inamovibles_total - asignado_basicos
 
-# 5. Creación de DataFrame Numérico Principal
 data = [
     {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Meta": 0.0, "Fijo": diezmo_fijo, "Variable": diezmo_var, "Asignado": diezmo_fijo + diezmo_var},
     {"Concepto": "Renta", "Plataforma": "NU (Cajita)", "Meta": META_RENTA, "Fijo": f_renta, "Variable": v_renta, "Asignado": f_renta + v_renta},
@@ -194,42 +187,31 @@ with m3:
 
 st.markdown("---")
 
-# --- TABLA DESGLOSE DE CAPITAL (VERSIÓN STRING SEGURA) ---
+# --- TABLA DESGLOSE DE CAPITAL (VERSIÓN NATIVA SIN BUG DE ESTILOS) ---
 st.subheader("Desglose de Capital")
 
-# 1. Creamos una copia del dataframe exclusivamente para mostrar texto
+# Creamos un DF limpio y formateamos directamente los strings para evitar colapsos
 df_display = df.copy()
 
-# 2. Convertimos los números a cadenas de texto de moneda (Manejando negativos)
-def formatear_moneda(v):
-    if v < -0.01:
-        return f"-${abs(v):,.2f}"
+def format_moneda(v):
     return f"${v:,.2f}"
 
-cols_num = ["Meta", "Fijo", "Variable", "Asignado", "Fit"]
-for c in cols_num:
-    df_display[c] = df[c].apply(formatear_moneda)
-
-# 3. Lógica visual basada 100% en el texto (a prueba de fallos de Streamlit)
-def color_fit_string(val):
-    if val.startswith("-$"):
-        return 'color: #FF0000 !important; font-weight: 800;' # ROJO para déficit
-    elif val == "$0.00":
-        return 'color: #ffffff;' # BLANCO para cero
+def format_fit(v):
+    if v < -0.01:
+        return f"🔴 -${abs(v):,.2f}"
+    elif v > 0.01:
+        return f"🟢 +${v:,.2f}"
     else:
-        return 'color: #00E676 !important; font-weight: 800;' # VERDE para ganancia
+        return f"⚪ $0.00"
 
-def color_general_string(val):
-    if val != "$0.00":
-        return 'color: #d4af37 !important;' # DORADO para montos activos
-    return 'color: #ffffff;' # BLANCO para ceros
+df_display["Meta"] = df["Meta"].apply(format_moneda)
+df_display["Fijo"] = df["Fijo"].apply(format_moneda)
+df_display["Variable"] = df["Variable"].apply(format_moneda)
+df_display["Asignado"] = df["Asignado"].apply(format_moneda)
+df_display["Fit"] = df["Fit"].apply(format_fit)
 
-# Aplicamos los estilos a la copia de texto
-styled_df = df_display.style.map(color_fit_string, subset=["Fit"])\
-    .map(color_general_string, subset=["Meta", "Fijo", "Variable", "Asignado"])\
-    .set_properties(**{'background-color': '#000000', 'border-color': '#d4af3722'})
-
-st.dataframe(styled_df, use_container_width=True, hide_index=True)
+# Mandamos el DF crudo a Streamlit, 100% garantizado que se renderiza
+st.dataframe(df_display, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
@@ -238,7 +220,6 @@ c1, c_esp, c2 = st.columns([1, 0.1, 1.2])
 
 with c1:
     st.subheader("🏦 CLABEs (Copiables)")
-    # Para la gráfica y los bancos, seguimos usando el DF numérico original
     df_bancos = df.groupby("Plataforma")["Asignado"].sum().reset_index()
     df_bancos = df_bancos[df_bancos["Asignado"] > 0]
     
