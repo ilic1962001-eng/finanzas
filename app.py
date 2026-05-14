@@ -1,6 +1,24 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import random
+
+# ==========================================
+# GESTIÓN DE ESTADOS (MEMORIA DE LA APP)
+# ==========================================
+if "val_fijo" not in st.session_state:
+    st.session_state.val_fijo = 0.0
+if "val_var" not in st.session_state:
+    st.session_state.val_var = 0.0
+if "mostrar_celebracion" not in st.session_state:
+    st.session_state.mostrar_celebracion = False
+
+def confirmar_deposito():
+    # Reiniciar a cero las entradas
+    st.session_state.val_fijo = 0.0
+    st.session_state.val_var = 0.0
+    # Activar la animación
+    st.session_state.mostrar_celebracion = True
 
 # ==========================================
 # CONFIGURACIÓN ELITE Y ESTILOS
@@ -65,13 +83,17 @@ st.markdown("""
         width: 100%;
         border-radius: 4px;
         border: none;
-        padding: 10px;
+        padding: 15px;
         margin-top: 15px;
         transition: all 0.3s ease;
+        white-space: normal !important;
+        line-height: 1.3 !important;
+        text-transform: uppercase;
     }
     .stButton>button:hover {
         background-color: #FF0000 !important;
         color: #ffffff !important;
+        transform: scale(1.02);
     }
     
     /* CLABES: NEGRAS EN FONDO BLANCO */
@@ -96,6 +118,21 @@ st.markdown("""
     .panel-izquierdo {
         border-right: 1px solid #d4af3744;
         padding-right: 20px;
+    }
+    
+    /* ANIMACIÓN LLUVIA DE BILLETES */
+    .dinero-cayendo {
+        position: fixed;
+        top: -10%;
+        z-index: 999999;
+        user-select: none;
+        pointer-events: none;
+        animation-name: caida_dinero;
+        animation-timing-function: linear;
+        animation-fill-mode: forwards;
+    }
+    @keyframes caida_dinero {
+        to { transform: translateY(110vh) rotate(720deg); }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -128,25 +165,41 @@ col_izq, col_der = st.columns([1, 3], gap="large")
 with col_izq:
     st.markdown("<div class='panel-izquierdo'>", unsafe_allow_html=True)
     st.markdown("<h3 style='color:#d4af37; font-size: 1.5rem;'>Flujo de Capital</h3>", unsafe_allow_html=True)
-    ingreso_fijo_bruto = st.number_input("INGR. FIJO ($)", min_value=0.0, value=0.0, step=100.0)
-    ingreso_var_bruto = st.number_input("INGR. VARIABLE ($)", min_value=0.0, value=0.0, step=100.0)
     
-    # Botón de cálculo
-    btn_calcular = st.button("🔔 EJECUTAR CÁLCULO")
+    # Inputs vinculados a session_state
+    ingreso_fijo_bruto = st.number_input("INGR. FIJO ($)", min_value=0.0, step=100.0, key="val_fijo")
+    ingreso_var_bruto = st.number_input("INGR. VARIABLE ($)", min_value=0.0, step=100.0, key="val_var")
+    
+    # Botón con Callback para reiniciar valores
+    st.button("CONFIRMO QUE YA DEPOSITÉ TODO COMO DEBE SER", on_click=confirmar_deposito)
     
     st.divider()
     st.markdown("<p style='font-size:0.8rem; color:#888888; text-align:center;'>Diseñado para el futuro de Ilich & Mirssa</p>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Inyección de Audio al presionar el botón
-    if btn_calcular:
-        # Campanita / Caja registradora (sonido libre de derechos)
-        audio_html = """
+    # Inyección de Animación y Sonido (Se ejecuta solo si mostrar_celebracion es True)
+    if st.session_state.mostrar_celebracion:
+        iconos = ['💸', '💵', '💰', '💶', '👑']
+        animacion_html = ""
+        
+        # Generar 50 billetes cayendo con tiempos y posiciones aleatorias
+        for _ in range(50):
+            left = random.randint(0, 100)
+            delay = random.uniform(0, 1.5)
+            duration = random.uniform(2, 4)
+            size = random.uniform(2, 4)
+            icono = random.choice(iconos)
+            animacion_html += f'<div class="dinero-cayendo" style="left: {left}%; font-size: {size}rem; animation-duration: {duration}s; animation-delay: {delay}s;">{icono}</div>'
+        
+        # Audio autoplay (Campanita de Caja Registradora)
+        animacion_html += """
         <audio autoplay style="display:none;">
             <source src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3" type="audio/mpeg">
         </audio>
         """
-        st.markdown(audio_html, unsafe_allow_html=True)
+        st.markdown(animacion_html, unsafe_allow_html=True)
+        # Apagamos la animación para que no se repita en la siguiente interacción
+        st.session_state.mostrar_celebracion = False
 
 with col_der:
     # ==========================================
