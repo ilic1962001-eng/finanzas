@@ -124,7 +124,7 @@ texto_rescate = f"{(rescate_total / var_neto) * 100:.1f}%" if var_neto > 0 and r
 asignado_basicos = f_renta + v_renta + f_transp + v_transp + f_novia + v_novia + f_viajes + v_viajes
 deficit_basico = meta_inamovibles_total - asignado_basicos
 
-# 5. Creación de DataFrame 
+# 5. Creación de DataFrame Numérico Principal
 data = [
     {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Meta": 0.0, "Fijo": diezmo_fijo, "Variable": diezmo_var, "Asignado": diezmo_fijo + diezmo_var},
     {"Concepto": "Renta", "Plataforma": "NU (Cajita)", "Meta": META_RENTA, "Fijo": f_renta, "Variable": v_renta, "Asignado": f_renta + v_renta},
@@ -138,7 +138,7 @@ data = [
 ]
 df = pd.DataFrame(data)
 
-# COLUMNA FIT
+# COLUMNA FIT MATEMÁTICA
 df["Fit"] = df.apply(lambda x: x["Asignado"] - x["Meta"] if x["Meta"] > 0 else x["Asignado"], axis=1)
 
 # ==========================================
@@ -194,30 +194,39 @@ with m3:
 
 st.markdown("---")
 
-# --- TABLA DESGLOSE DE CAPITAL ---
+# --- TABLA DESGLOSE DE CAPITAL (VERSIÓN STRING SEGURA) ---
 st.subheader("Desglose de Capital")
 
-# Funciones seguras de coloreo usando .map()
-def pintar_fit(val):
-    if isinstance(val, (int, float)):
-        if val > 0.01:
-            return 'color: #00E676 !important; font-weight: 800;'
-        elif val < -0.01:
-            return 'color: #FF0000 !important; font-weight: 800;'
-    return 'color: #ffffff;'
+# 1. Creamos una copia del dataframe exclusivamente para mostrar texto
+df_display = df.copy()
 
-def pintar_dorado(val):
-    if isinstance(val, (int, float)) and val > 0.01:
-        return 'color: #d4af37 !important;'
-    return 'color: #ffffff;'
+# 2. Convertimos los números a cadenas de texto de moneda (Manejando negativos)
+def formatear_moneda(v):
+    if v < -0.01:
+        return f"-${abs(v):,.2f}"
+    return f"${v:,.2f}"
 
-# Aplicamos los estilos columna por columna
-styled_df = df.style.map(pintar_fit, subset=["Fit"])\
-    .map(pintar_dorado, subset=["Meta", "Fijo", "Variable", "Asignado"])\
-    .format({
-        "Meta": "${:,.2f}", "Fijo": "${:,.2f}", "Variable": "${:,.2f}",
-        "Asignado": "${:,.2f}", "Fit": "${:,.2f}"
-    })\
+cols_num = ["Meta", "Fijo", "Variable", "Asignado", "Fit"]
+for c in cols_num:
+    df_display[c] = df[c].apply(formatear_moneda)
+
+# 3. Lógica visual basada 100% en el texto (a prueba de fallos de Streamlit)
+def color_fit_string(val):
+    if val.startswith("-$"):
+        return 'color: #FF0000 !important; font-weight: 800;' # ROJO para déficit
+    elif val == "$0.00":
+        return 'color: #ffffff;' # BLANCO para cero
+    else:
+        return 'color: #00E676 !important; font-weight: 800;' # VERDE para ganancia
+
+def color_general_string(val):
+    if val != "$0.00":
+        return 'color: #d4af37 !important;' # DORADO para montos activos
+    return 'color: #ffffff;' # BLANCO para ceros
+
+# Aplicamos los estilos a la copia de texto
+styled_df = df_display.style.map(color_fit_string, subset=["Fit"])\
+    .map(color_general_string, subset=["Meta", "Fijo", "Variable", "Asignado"])\
     .set_properties(**{'background-color': '#000000', 'border-color': '#d4af3722'})
 
 st.dataframe(styled_df, use_container_width=True, hide_index=True)
@@ -229,6 +238,7 @@ c1, c_esp, c2 = st.columns([1, 0.1, 1.2])
 
 with c1:
     st.subheader("🏦 CLABEs (Copiables)")
+    # Para la gráfica y los bancos, seguimos usando el DF numérico original
     df_bancos = df.groupby("Plataforma")["Asignado"].sum().reset_index()
     df_bancos = df_bancos[df_bancos["Asignado"] > 0]
     
