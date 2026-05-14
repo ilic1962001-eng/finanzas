@@ -3,12 +3,10 @@ import pandas as pd
 import plotly.express as px
 
 # ==========================================
-# CONFIGURACIÓN DE LA PÁGINA
+# CONFIGURACIÓN
 # ==========================================
 st.set_page_config(page_title="Dashboard Cascada Pro", layout="wide", page_icon="💧")
-
 st.title("📊 Control Financiero: Distribución Dinámica")
-st.markdown("---")
 
 # ==========================================
 # ENTRADA DE DATOS
@@ -17,14 +15,14 @@ st.sidebar.header("💸 Ingresos de la Semana")
 ingreso_fijo_bruto = st.sidebar.number_input("Ingreso FIJO Semanal ($)", min_value=0.0, value=0.0, step=100.0)
 ingreso_var_bruto = st.sidebar.number_input("Ingreso VARIABLE Semanal ($)", min_value=0.0, value=0.0, step=100.0)
 
-# Parámetros de distribución fija (Tus porcentajes de presupuesto)
+# Parámetros del Sistema
 DIEZMO_PCT = 0.10
-GASTO_PCT = 0.65   # Cubre Renta, Novia, Viajes, Transporte
+GASTO_PCT = 0.65   # Renta, Novia, Viajes, Transporte
 DEUDA_PCT = 0.10   
 AHORRO_PCT = 0.10  
 INVERSION_PCT = 0.15 
 
-# Metas mínimas (Inamovibles)
+# Metas Mínimas Inamovibles
 meta_renta = 875.0
 meta_transporte = 430.0
 meta_novia = 500.0
@@ -32,7 +30,7 @@ meta_viajes = 300.0
 meta_inamovibles_total = meta_renta + meta_transporte + meta_novia + meta_viajes
 
 # ==========================================
-# PROCESAMIENTO INICIAL
+# CÁLCULOS BASE
 # ==========================================
 diezmo_fijo = ingreso_fijo_bruto * DIEZMO_PCT
 fijo_neto = ingreso_fijo_bruto - diezmo_fijo
@@ -40,79 +38,73 @@ fijo_neto = ingreso_fijo_bruto - diezmo_fijo
 diezmo_var = ingreso_var_bruto * DIEZMO_PCT
 var_neto = ingreso_var_bruto - diezmo_var
 
-# Inicialización de variables
+# Inicialización
 f_renta = f_transp = f_novia = f_viajes = f_deuda = f_emerg = f_colchon = f_retiro = 0
 v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_retiro = 0
 
 # ==========================================
-# 1. ALERTAS DE UMBRAL (BANNER DE ENTRADA)
-# ==========================================
-total_disponible_para_gastos = (fijo_neto * GASTO_PCT) + var_neto
-
-if total_disponible_para_gastos < meta_inamovibles_total and (ingreso_fijo_bruto + ingreso_var_bruto) > 0:
-    faltante = meta_inamovibles_total - total_disponible_para_gastos
-    st.error(f"❌ **ALERTA DE DÉFICIT:** Te faltan **${faltante:,.2f}** para cubrir tus gastos inamovibles mínimos.")
-elif ingreso_fijo_bruto > 0:
-    st.success(f"✅ **SISTEMA SALUDABLE:** Cubriendo mínimos y distribuyendo excedentes.")
-
-# ==========================================
-# 2. LÓGICA DE DISTRIBUCIÓN
+# LÓGICA DE DISTRIBUCIÓN (FIJO)
 # ==========================================
 capacidad_gasto_fijo = fijo_neto * GASTO_PCT
 
+# DETERMINAR SI HAY DÉFICIT ANTES DE EMPEZAR
+if capacidad_gasto_fijo + var_neto < meta_inamovibles_total and (ingreso_fijo_bruto + ingreso_var_bruto) > 0:
+    faltante = meta_inamovibles_total - (capacidad_gasto_fijo + var_neto)
+    st.error(f"❌ **DÉFICIT DETECTADO:** Faltan **${faltante:,.2f}** para cubrir los mínimos.")
+
 if capacidad_gasto_fijo >= meta_inamovibles_total:
-    # ESCENARIO: DISTRIBUCIÓN PORCENTUAL (EL "DESBLOQUEO")
-    # Gastos
-    f_renta = capacidad_gasto_fijo * (meta_renta / meta_inamovibles_total)
-    f_transp = capacidad_gasto_fijo * (meta_transporte / meta_inamovibles_total)
-    f_novia = capacidad_gasto_fijo * (meta_novia / meta_inamovibles_total)
-    f_viajes = capacidad_gasto_fijo * (meta_viajes / meta_inamovibles_total)
-    # Resto
+    # --- MODO DESBLOQUEADO (CRECIMIENTO PROPORCIONAL) ---
+    # Calculamos cuánto pesa cada meta en el total de gastos para mantener la proporción
+    p_renta = meta_renta / meta_inamovibles_total
+    p_transp = meta_transporte / meta_inamovibles_total
+    p_novia = meta_novia / meta_inamovibles_total
+    p_viajes = meta_viajes / meta_inamovibles_total
+
+    f_renta = capacidad_gasto_fijo * p_renta
+    f_transp = capacidad_gasto_fijo * p_transp
+    f_novia = capacidad_gasto_fijo * p_novia
+    f_viajes = capacidad_gasto_fijo * p_viajes
+    
+    # Distribución del resto del fijo
     f_deuda = fijo_neto * DEUDA_PCT
     f_emerg = (fijo_neto * AHORRO_PCT) * 0.50
     f_colchon = (fijo_neto * AHORRO_PCT) * 0.50
     f_retiro = fijo_neto * INVERSION_PCT
+    
+    st.success("🚀 **Distribución Proporcional Activa:** Los sobres de gasto están creciendo.")
 else:
-    # ESCENARIO: CASCADA (RELLENO DE HUECOS)
+    # --- MODO CASCADA (RELLENO DE HUECOS) ---
+    st.warning("⚠️ **Modo Cascada:** Priorizando el llenado de inamovibles.")
     f_aux = fijo_neto
     f_renta = min(f_aux, meta_renta); f_aux -= f_renta
     f_transp = min(f_aux, meta_transporte); f_aux -= f_transp
     f_novia = min(f_aux, meta_novia); f_aux -= f_novia
     f_viajes = min(f_aux, meta_viajes); f_aux -= f_viajes
-    # El resto del fijo a los otros rubros
-    f_deuda = min(f_aux, 400); f_aux -= f_deuda
-    f_emerg = min(f_aux, 250); f_aux -= f_emerg
-    f_colchon = min(f_aux, 250); f_aux -= f_colchon
+    f_deuda = min(f_aux, 400.0); f_aux -= f_deuda
+    f_emerg = min(f_aux, 250.0); f_aux -= f_emerg
+    f_colchon = min(f_aux, 250.0); f_aux -= f_colchon
     f_retiro = f_aux
 
 # ==========================================
-# 3. USO DEL INGRESO VARIABLE (RESCATE O EXCESO)
+# LÓGICA VARIABLE (RESCATE)
 # ==========================================
-faltante_tras_fijo_renta = meta_renta - f_renta
-faltante_tras_fijo_transp = meta_transporte - f_transp
-faltante_tras_fijo_novia = meta_novia - f_novia
-faltante_tras_fijo_viajes = meta_viajes - f_viajes
-
+# Solo rescatamos si el FIJO no llegó a las metas mínimas
 v_aux = var_neto
+v_renta = min(v_aux, max(0, meta_renta - f_renta)); v_aux -= v_renta
+v_transp = min(v_aux, max(0, meta_transporte - f_transp)); v_aux -= v_transp
+v_novia = min(v_aux, max(0, meta_novia - f_novia)); v_aux -= v_novia
+v_viajes = min(v_aux, max(0, meta_viajes - f_viajes)); v_aux -= v_viajes
 
-# Primero rescatamos inamovibles si el fijo no llegó
-v_renta = min(v_aux, faltante_tras_fijo_renta); v_aux -= v_renta
-v_transp = min(v_aux, faltante_tras_fijo_transp); v_aux -= v_transp
-v_novia = min(v_aux, faltante_tras_fijo_novia); v_aux -= v_novia
-v_viajes = min(v_aux, faltante_tras_fijo_viajes); v_aux -= v_viajes
-
-# Si sobra variable, se va a la regla 50/30/20 para acelerar metas
+# El resto del variable se distribuye 50/30/20 para acelerar
 if v_aux > 0:
-    v_ahorro_bolsa = v_aux * 0.50
+    v_ahorro = v_aux * 0.50
     v_deuda = v_aux * 0.30
-    v_retiro_extra = v_aux * 0.20
-    
-    v_emerg = v_ahorro_bolsa * 0.50
-    v_colchon = v_ahorro_bolsa * 0.50
-    v_retiro = v_retiro_extra
+    v_retiro = v_aux * 0.20
+    v_emerg = v_ahorro * 0.50
+    v_colchon = v_ahorro * 0.50
 
 # ==========================================
-# CONSTRUCCIÓN DE TABLAS Y UI
+# TABLA FINAL Y RESUMEN
 # ==========================================
 detalles = [
     {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Fijo": diezmo_fijo, "Variable": diezmo_var},
@@ -129,25 +121,11 @@ detalles = [
 df_detalles = pd.DataFrame(detalles)
 df_detalles["Total"] = df_detalles["Fijo"] + df_detalles["Variable"]
 
-col1, col2, col3 = st.columns(3)
-col1.metric("Ingreso Fijo Neto (Post-Diezmo)", f"${fijo_neto:,.2f}")
-col2.metric("Gasto Total (Operativo)", f"${(df_detalles[df_detalles['Concepto'].isin(['Renta','Transporte','Novia','Viajes/Visitas'])]['Total'].sum()):,.2f}")
-col3.metric("Ahorro e Inversión", f"${(df_detalles[df_detalles['Concepto'].isin(['Emergencias','Colchón','Retiro/Bolsa'])]['Total'].sum()):,.2f}")
-
-st.markdown("---")
-st.subheader("💳 Resumen de Transferencias por Banco")
+# Resumen Bancario (Aquí es donde verás los cambios en NU Gasto y SPIN)
+st.subheader("💳 Transferencias Requeridas")
 df_bancos = df_detalles.groupby("Plataforma")["Total"].sum().reset_index()
 st.table(df_bancos.style.format({"Total": "${:,.2f}"}))
 
-with st.expander("📝 Ver desglose granular (Fijo vs Variable)"):
-    st.dataframe(df_detalles.style.format({"Fijo": "${:,.2f}", "Variable": "${:,.2f}", "Total": "${:,.2f}"}), use_container_width=True)
-
-# Gráfico de Cubetas
-st.subheader("💧 Nivel de Llenado vs Metas")
-df_bar = pd.DataFrame({
-    'Cubeta': df_detalles['Concepto'][1:8],
-    'Nivel Real': df_detalles['Total'][1:8],
-    'Meta Mínima': [meta_renta, meta_transporte, meta_novia, meta_viajes, 400, 250, 250]
-})
-fig = px.bar(df_bar, x='Cubeta', y=['Meta Mínima', 'Nivel Real'], barmode='group', color_discrete_sequence=['#E2E8F0', '#3182CE'])
-st.plotly_chart(fig, use_container_width=True)
+# Visualización Granular
+with st.expander("🔍 Ver desglose Fijo vs Variable"):
+    st.dataframe(df_detalles.style.format({"Fijo": "${:,.2f}", "Variable": "${:,.2f}", "Total": "${:,.2f}"}))
