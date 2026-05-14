@@ -94,8 +94,8 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # Renderizado de Títulos y Mensaje Élite
-st.markdown('<h1 class="app-title">Mi Por que</h1>', unsafe_allow_html=True)
-st.markdown('<p class="dedicatoria">"Porque cada peso bien administrado es un ladrillo más para nuestra rancho y cada ahorro una promesa de seguridad para nuestra vida juntos."</p>', unsafe_allow_html=True)
+st.markdown('<h1 class="app-title">MI PORQUE</h1>', unsafe_allow_html=True)
+st.markdown('<p class="dedicatoria">"Porque cada peso bien administrado es un ladrillo más para nuestro rancho y cada ahorro una promesa de seguridad para nuestra vida juntos."</p>', unsafe_allow_html=True)
 
 # ==========================================
 # PARÁMETROS FINANCIEROS
@@ -119,8 +119,8 @@ CUENTAS = {
 # ==========================================
 with st.sidebar:
     st.markdown("<h3 style='color:#d4af37;'>Flujo de Capital</h3>", unsafe_allow_html=True)
-    ingreso_fijo_bruto = st.number_input("INGR. FIJO ($)", min_value=0.0, value=0.0, step=100.0)
-    ingreso_var_bruto = st.number_input("INGR. VARIABLE ($)", min_value=0.0, value=0.0, step=100.0)
+    ingreso_fijo_bruto = st.number_input("INGR. FIJO ($)", min_value=0.0, value=0.0, step=10.0)
+    ingreso_var_bruto = st.number_input("INGR. VARIABLE ($)", min_value=0.0, value=0.0, step=10.0)
     st.divider()
     st.markdown("<p style='font-size:0.8rem;'>Diseñado para el futuro de Ilich & Mirssa</p>", unsafe_allow_html=True)
 
