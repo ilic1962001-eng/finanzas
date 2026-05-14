@@ -245,4 +245,9 @@ with c1:
 with c2:
     st.subheader("Distribución Visual")
     fig = px.pie(df_bancos, values='Asignado', names='Plataforma', hole=0.7,
-                 color
+                 color_discrete_sequence=['#d4af37', '#ffffff', '#444444', '#888888', '#00E676'])
+    fig.update_layout(
+        template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+        font=dict(family="Montserrat", color="#ffffff")
+    )
+    st.plotly_chart(fig, use_container_width=True)
