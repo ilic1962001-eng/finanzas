@@ -61,7 +61,22 @@ f_viajes = min(f_aux, meta_viajes); f_aux -= f_viajes
 f_deuda = min(f_aux, meta_deuda); f_aux -= f_deuda
 f_emerg = min(f_aux, meta_emergencias); f_aux -= f_emerg
 f_colchon = min(f_aux, meta_colchon); f_aux -= f_colchon
-f_retiro = max(0, f_aux) 
+
+# NUEVA LÓGICA: Capturamos lo que sobra del ingreso fijo
+excedente_fijo = max(0, f_aux)
+f_retiro = 0
+f_reinversion = 0
+
+# Si sobró ingreso fijo, lo repartimos proporcionalmente (50/30/20) para engordar los demás sobres
+if excedente_fijo > 0:
+    f_ahorro_bolsa = excedente_fijo * 0.50
+    f_deuda_extra = excedente_fijo * 0.30
+    f_reinversion = excedente_fijo * 0.20
+    
+    f_emerg += f_ahorro_bolsa * 0.50
+    f_colchon += f_ahorro_bolsa * 0.25
+    f_retiro += f_ahorro_bolsa * 0.25
+    f_deuda += f_deuda_extra
 
 # ==========================================
 # LÓGICA DE RESCATE (INGRESO VARIABLE)
@@ -119,7 +134,8 @@ detalles = [
     {"Concepto": "Deuda", "Plataforma": "Pago Deuda", "Fijo": f_deuda, "Variable": v_deuda},
     {"Concepto": "Emergencias", "Plataforma": "CETES", "Fijo": f_emerg, "Variable": v_emerg},
     {"Concepto": "Colchón", "Plataforma": "NU (Cajita)", "Fijo": f_colchon, "Variable": v_colchon},
-    {"Concepto": "Retiro/Bolsa", "Plataforma": "GBM+", "Fijo": f_retiro, "Variable": v_retiro + v_reinversion},
+    # Ahora sumamos el excedente fijo repartido hacia retiro y reinversión
+    {"Concepto": "Retiro/Bolsa", "Plataforma": "GBM+", "Fijo": f_retiro + f_reinversion, "Variable": v_retiro + v_reinversion},
 ]
 
 df_detalles = pd.DataFrame(detalles)
