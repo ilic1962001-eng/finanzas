@@ -20,9 +20,8 @@ ingreso_variable = st.sidebar.number_input("Ingreso VARIABLE ($)", min_value=0.0
 diezmo_pct = 0.10
 
 # ==========================================
-# LÓGICA MATEMÁTICA Y PROCESAMIENTO
+# LÓGICA MATEMÁTICA: INICIALIZACIÓN
 # ==========================================
-# Inicializar
 renta_guardadito = novia = visitas = transporte = 0
 colchon_fijo = emergencia_fijo = ahorro_libre_fijo = 0
 ahorro_fijo = deuda_fijo = ocio_fijo = 0
@@ -61,7 +60,7 @@ if ingreso_variable > 0:
     colchon_var = ahorro_var * 0.25
 
 # ==========================================
-# METAS Y ANÁLISIS DE COBERTURA
+# METAS Y CÁLCULO DE FALTANTES
 # ==========================================
 meta_renta_mensual = 3500.0
 meta_renta_semanal = meta_renta_mensual / 4
@@ -77,26 +76,58 @@ ingreso_bruto_ideal = max(ingreso_necesario_renta, ingreso_necesario_novia)
 ingreso_neto_ideal = ingreso_bruto_ideal * (1 - diezmo_pct)
 
 cobertura_pct = (ingreso_fijo / ingreso_bruto_ideal * 100) if ingreso_bruto_ideal > 0 else 100.0
+faltante_bruto = max(0, ingreso_bruto_ideal - ingreso_fijo)
 faltante_neto = max(0, ingreso_neto_ideal - fijo_despues_dios)
 
 # ==========================================
-# RESCATE TEMPORAL
+# PANEL DE DIAGNÓSTICO Y RESCATE MANUAL
 # ==========================================
 renta_final, novia_final, visitas_final, transporte_final = renta_guardadito, novia, visitas, transporte
 gasto_fijo_final = gasto_fijo if ingreso_fijo > 0 else 0
 rescate_aplicado = 0
+aplicar_rescate = False
 
-if faltante_neto > 0 and var_despues_dios > 0:
-    rescate_aplicado = min(faltante_neto, var_despues_dios)
-    fijo_rescatado = fijo_despues_dios + rescate_aplicado
+if faltante_bruto > 0:
+    st.warning(f"⚠️ **Diagnóstico:** Para cubrir tus metas inamovibles (Renta y Novia) al 100%, te falta ingresar **${faltante_bruto:,.2f} BRUTOS** (lo que equivale a **${faltante_neto:,.2f} NETOS**) extra en tu Ingreso Fijo.")
     
-    gasto_fijo_final = fijo_rescatado * 0.75
-    renta_final = gasto_fijo_final * 0.45
-    novia_final = gasto_fijo_final * 0.20
-    visitas_final = gasto_fijo_final * 0.13
-    transporte_final = gasto_fijo_final - (renta_final + novia_final + visitas_final)
+    if var_despues_dios > 0:
+        st.info(f"💡 **Sugerencia de Solución:** Tienes **${var_despues_dios:,.2f}** netos disponibles en tu Ingreso Variable. Puedes usar parte de este dinero para estabilizar tus metas de esta semana.")
+        # Aquí está la magia: un botón que tú controlas
+        aplicar_rescate = st.checkbox("🔄 Sí, recalcular usando el Ingreso Variable como rescate esta semana.")
+        
+        if aplicar_rescate:
+            rescate_aplicado = min(faltante_neto, var_despues_dios)
+            fijo_rescatado = fijo_despues_dios + rescate_aplicado
+            
+            # Recalcular los fijos con el dinero inyectado
+            gasto_fijo_final = fijo_rescatado * 0.75
+            renta_final = gasto_fijo_final * 0.45
+            novia_final = gasto_fijo_final * 0.20
+            visitas_final = gasto_fijo_final * 0.13
+            transporte_final = gasto_fijo_final - (renta_final + novia_final + visitas_final)
+            
+            # Recalcular los variables (descontando lo que prestamos al fijo)
+            var_restante = var_despues_dios - rescate_aplicado
+            ahorro_var = var_restante * 0.50
+            deuda_var = var_restante * 0.30
+            reinversion = var_restante * 0.20
 
-# CONSOLIDADOS
+            emergencia_var = ahorro_var * 0.50
+            retiro_var = ahorro_var * 0.25
+            colchon_var = ahorro_var * 0.25
+            
+            st.success(f"✅ Se inyectaron **${rescate_aplicado:,.2f}** a tus gastos operativos. Gráficas actualizadas.")
+    else:
+        st.error("❌ No tienes fondos en tu Ingreso Variable esta semana. Tendrás que ajustar tus gastos.")
+else:
+    if ingreso_fijo > 0:
+        st.success("✅ ¡Felicidades! Tu Ingreso Fijo esta semana cubre y supera tus gastos inamovibles.")
+
+st.markdown("---")
+
+# ==========================================
+# CONSOLIDADOS FINALES (Sumas después de cualquier decisión)
+# ==========================================
 ingreso_total = ingreso_fijo + ingreso_variable
 colchon_total = colchon_fijo + colchon_var
 emergencia_total = emergencia_fijo + emergencia_var
@@ -111,9 +142,9 @@ ocio_total = ocio_fijo
 # 1. KPIs Rápidos
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Ingreso Total Bruto", f"${ingreso_total:,.2f}")
-col2.metric("Cobertura de Metas", f"{cobertura_pct:.1f}%")
-col3.metric("Rescate Aplicado", f"${rescate_aplicado:,.2f}")
-col4.metric("Total a Invertir/Ahorrar", f"${(emergencia_total + inversion_gbm_total + colchon_total):,.2f}")
+col2.metric("Cobertura Ideal", f"{cobertura_pct:.1f}%")
+col3.metric("Ahorro / Inversión Total", f"${(emergencia_total + inversion_gbm_total + colchon_total):,.2f}")
+col4.metric("Presupuesto de Ocio", f"${ocio_total:,.2f}")
 
 st.markdown("---")
 
@@ -134,14 +165,14 @@ with col_graf1:
         st.info("Ingresa un monto para ver la distribución.")
 
 with col_graf2:
-    st.subheader("🎯 Termómetro de Metas")
+    st.subheader("🎯 Termómetro de Metas Semanales")
     df_bar = pd.DataFrame({
         'Categoría': ['Renta', 'Renta', 'Novia', 'Novia'],
-        'Tipo': ['Logrado', 'Meta', 'Logrado', 'Meta'],
+        'Tipo': ['Logrado', 'Meta Inamovible', 'Logrado', 'Meta Inamovible'],
         'Monto': [renta_final, meta_renta_semanal, novia_final, meta_novia_semanal]
     })
     fig_bar = px.bar(df_bar, x='Categoría', y='Monto', color='Tipo', barmode='group',
-                     color_discrete_map={'Logrado': '#2ca02c', 'Meta': '#d62728'})
+                     color_discrete_map={'Logrado': '#2ca02c', 'Meta Inamovible': '#d62728'})
     st.plotly_chart(fig_bar, use_container_width=True)
 
 st.markdown("---")
@@ -173,7 +204,7 @@ with st.expander("Ver Proyecciones Financieras a Futuro 🚀"):
     semanas = 52
     tasa_cetes = 0.11 / semanas
     fv_cetes = emergencia_total * (((1 + tasa_cetes)**semanas - 1) / tasa_cetes) if emergencia_total > 0 else 0
-    st.write(f"Si mantienes esta aportación semanal, en 1 año tendrás: **${fv_cetes:,.2f}**")
+    st.write(f"Si mantienes esta aportación semanal constante, en 1 año tendrás: **${fv_cetes:,.2f}**")
 
     st.markdown("**📈 Retiro / Inversión (GBM ~10% anual)**")
     tasa_gbm = 0.10 / semanas
