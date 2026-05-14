@@ -18,17 +18,16 @@ ingreso_fijo = st.sidebar.number_input("Ingreso FIJO ($)", min_value=0.0, value=
 ingreso_variable = st.sidebar.number_input("Ingreso VARIABLE ($)", min_value=0.0, value=0.0, step=100.0)
 
 st.sidebar.markdown("---")
-st.sidebar.header("🎯 Metas (Orden de Prioridad)")
+st.sidebar.header("🎯 Metas de la Cascada")
 st.sidebar.caption("Define cuánto requiere cada cubeta. El sistema las llenará de arriba hacia abajo.")
 
 meta_renta = st.sidebar.number_input("1. Renta", value=875.0, step=50.0)
 meta_transporte = st.sidebar.number_input("2. Transporte", value=300.0, step=50.0)
 meta_novia = st.sidebar.number_input("3. Novia", value=500.0, step=50.0)
-meta_viajes = st.sidebar.number_input("4. Viajes/Ocio", value=300.0, step=50.0)
+meta_viajes = st.sidebar.number_input("4. Viajes/Ocio (Visitas)", value=300.0, step=50.0)
 meta_deuda = st.sidebar.number_input("5. Deuda", value=400.0, step=50.0)
 meta_emergencias = st.sidebar.number_input("6. Emergencias (CETES)", value=250.0, step=50.0)
 meta_colchon = st.sidebar.number_input("7. Colchón", value=250.0, step=50.0)
-# Lo que sobre después de esto, irá al Retiro (Prioridad 8)
 
 diezmo_pct = 0.10
 
@@ -41,6 +40,21 @@ var_despues_dios = ingreso_variable * (1 - diezmo_pct) if ingreso_variable > 0 e
 # Los gastos inamovibles son las primeras 4 prioridades
 meta_inamovibles = meta_renta + meta_transporte + meta_novia + meta_viajes
 faltante_inamovibles = max(0, meta_inamovibles - fijo_despues_dios)
+
+# ==========================================
+# DISTRIBUCIÓN OBJETIVO (MATEMÁTICA PURA)
+# ==========================================
+# ¿Qué dictan tus porcentajes originales si aplicamos la fórmula estricta a tu ingreso?
+obj_gasto = fijo_despues_dios * 0.75
+obj_renta = obj_gasto * 0.45
+obj_novia = obj_gasto * 0.20
+obj_visitas = obj_gasto * 0.13
+obj_transp = obj_gasto - (obj_renta + obj_novia + obj_visitas)
+
+obj_deuda = fijo_despues_dios * 0.10
+obj_ahorro = fijo_despues_dios * 0.10
+obj_colchon = obj_ahorro * 0.50
+obj_emerg = obj_ahorro * 0.25
 
 # ==========================================
 # DIAGNÓSTICO Y RESCATE TEMPORAL
@@ -61,35 +75,25 @@ if faltante_inamovibles > 0 and fijo_despues_dios > 0:
     else:
         st.error("❌ No hay Ingreso Variable para un rescate. El dinero llegará hasta donde alcance la cascada.")
 elif fijo_despues_dios == 0:
-    st.info("Introduce tus ingresos para ver el diagnóstico.")
+    st.info("Introduce tus ingresos en el menú lateral para ver el diagnóstico.")
 else:
     st.success(f"✅ ¡Excelente! Tu Ingreso Fijo cubre tus gastos inamovibles. Tu Ingreso Variable se invertirá íntegramente.")
 
-# Ajuste de bolsas después del rescate (si hubo)
 fijo_operativo = fijo_despues_dios + rescate_aplicado
 var_operativo = var_despues_dios - rescate_aplicado
 
 # ==========================================
 # ALGORITMO DE CASCADA (LLENADO POR PRIORIDAD)
 # ==========================================
-# Variables de destino
 r_renta = r_transp = r_novia = r_viajes = r_deuda = r_emerg = r_colchon = r_retiro = 0
 
-# 1. Renta
 r_renta = min(fijo_operativo, meta_renta); fijo_operativo -= r_renta
-# 2. Transporte
 r_transp = min(fijo_operativo, meta_transporte); fijo_operativo -= r_transp
-# 3. Novia
 r_novia = min(fijo_operativo, meta_novia); fijo_operativo -= r_novia
-# 4. Viajes
 r_viajes = min(fijo_operativo, meta_viajes); fijo_operativo -= r_viajes
-# 5. Deuda
 r_deuda = min(fijo_operativo, meta_deuda); fijo_operativo -= r_deuda
-# 6. Emergencias
 r_emerg = min(fijo_operativo, meta_emergencias); fijo_operativo -= r_emerg
-# 7. Colchón
 r_colchon = min(fijo_operativo, meta_colchon); fijo_operativo -= r_colchon
-# 8. Retiro (Todo el dinero libre sobrante va a crecimiento a largo plazo)
 r_retiro = fijo_operativo 
 
 # ==========================================
@@ -107,7 +111,6 @@ if var_operativo > 0:
     retiro_var = ahorro_var * 0.25
     colchon_var = ahorro_var * 0.25
 
-# Sumatorias Finales
 emergencia_total = r_emerg + emergencia_var
 retiro_total = r_retiro + retiro_var
 inversion_gbm_total = retiro_total + reinversion_var
@@ -120,7 +123,6 @@ st.markdown("---")
 # INTERFAZ DE USUARIO (DASHBOARD)
 # ==========================================
 
-# 1. KPIs Rápidos
 col1, col2, col3 = st.columns(3)
 col1.metric("Ingreso Total Bruto", f"${(ingreso_fijo + ingreso_variable):,.2f}")
 col2.metric("Total a Deuda", f"${deuda_total:,.2f}")
@@ -128,7 +130,48 @@ col3.metric("Total Ahorro/GBM", f"${(emergencia_total + inversion_gbm_total + co
 
 st.markdown("---")
 
-# 2. Gráficos
+# ==========================================
+# NUEVO: AUDITORÍA CASCADA VS OBJETIVO
+# ==========================================
+st.subheader("⚖️ Auditoría: Cascada (Real) vs. Objetivo (Porcentajes)")
+st.markdown("Compara cuánto pediste en tu cascada manual vs. lo que la matemática estricta dictaba para tu nivel de ingresos.")
+
+if ingreso_fijo > 0:
+    # Calcular diferencias (Positivo = Ahorraste/Pediste menos; Negativo = Gastaste más del porcentaje)
+    df_comparativa = pd.DataFrame({
+        "Categoría": ["Renta", "Transporte", "Novia", "Viajes/Ocio", "Deuda", "Emergencias", "Colchón"],
+        "Objetivo (Fórmula)": [obj_renta, obj_transp, obj_novia, obj_visitas, obj_deuda, obj_emerg, obj_colchon],
+        "Cascada (Manual)": [meta_renta, meta_transporte, meta_novia, meta_viajes, meta_deuda, meta_emergencias, meta_colchon],
+    })
+    
+    df_comparativa["Diferencia"] = df_comparativa["Objetivo (Fórmula)"] - df_comparativa["Cascada (Manual)"]
+    
+    # Formatear la tabla para visualizar colores y signos
+    def color_diferencia(val):
+        color = '#2ca02c' if val > 0 else '#d62728' if val < 0 else 'gray'
+        return f'color: {color}; font-weight: bold'
+
+    df_formateado = df_comparativa.style.format({
+        "Objetivo (Fórmula)": "${:,.2f}",
+        "Cascada (Manual)": "${:,.2f}",
+        "Diferencia": "${:,.2f}"
+    }).map(color_diferencia, subset=['Diferencia'])
+    
+    st.dataframe(df_formateado, use_container_width=True)
+    
+    ahorro_total_cascada = df_comparativa["Diferencia"].sum()
+    if ahorro_total_cascada > 0:
+        st.success(f"🌟 **Balance Positivo:** Al ajustar tus metas manualmente en la cascada, estás exigiendo **${ahorro_total_cascada:,.2f}** menos de lo que dictaban tus porcentajes. ¡Ese dinero bajará directo a tus inversiones libres!")
+    elif ahorro_total_cascada < 0:
+        st.error(f"📉 **Balance Negativo:** Tus metas manuales de la cascada son **${abs(ahorro_total_cascada):,.2f}** más altas de lo que tu ingreso actual puede soportar según tus porcentajes base.")
+else:
+    st.info("Ingresa tu ingreso fijo para generar la auditoría comparativa.")
+
+st.markdown("---")
+
+# ==========================================
+# GRÁFICOS
+# ==========================================
 col_graf1, col_graf2 = st.columns(2)
 
 with col_graf1:
@@ -138,13 +181,12 @@ with col_graf1:
         'Asignado ($)': [r_renta, r_transp, r_novia, r_viajes, r_deuda, r_emerg, r_colchon],
         'Meta Requerida': [meta_renta, meta_transporte, meta_novia, meta_viajes, meta_deuda, meta_emergencias, meta_colchon]
     })
-    # Graficar cuánto se llenó vs cuánto pedía la meta
     fig_bar = px.bar(df_cascada, x='Prioridad', y=['Meta Requerida', 'Asignado ($)'], 
                      barmode='overlay', opacity=0.8, color_discrete_sequence=['#e5e5e5', '#1f77b4'])
     st.plotly_chart(fig_bar, use_container_width=True)
 
 with col_graf2:
-    st.subheader("🏠 Distribución Gasto Operativo")
+    st.subheader("🏠 Distribución Gasto Operativo Real")
     total_gasto = r_renta + r_transp + r_novia + r_viajes
     if total_gasto > 0:
         df_pie = pd.DataFrame({
@@ -159,7 +201,9 @@ with col_graf2:
 
 st.markdown("---")
 
-# 3. Tabla de Transferencias y CLABEs
+# ==========================================
+# TRANSFERENCIAS FINALES
+# ==========================================
 st.subheader("💳 Destino de Fondos a Transferir")
 df_transferencias = pd.DataFrame({
     "Plataforma": ["NU (Gastos y Colchón)", "CETES Directo (Emergencias)", "GBM+ (Retiro/Inversión)", "SPIN (Ocio/Viajes)"],
