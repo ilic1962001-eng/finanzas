@@ -47,7 +47,6 @@ st.markdown("""
     div.stCodeBlock { background-color: #111111 !important; border: 1px solid #d4af37 !important; border-radius: 0px !important; }
     code { color: #d4af37 !important; font-size: 1.1rem !important; }
     
-    /* Fondo negro para las celdas de Streamlit */
     .stDataFrame [data-testid="stTable"] { background-color: #000000 !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -85,6 +84,7 @@ diezmo_var = ingreso_var_bruto * DIEZMO_PCT; var_neto = ingreso_var_bruto - diez
 f_renta = f_transp = f_novia = f_viajes = f_deuda = f_emerg = f_colchon = f_retiro = 0
 v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_retiro = 0
 
+# Distribución FIJA
 capacidad_gasto_fijo = fijo_neto * GASTO_PCT
 if capacidad_gasto_fijo >= meta_inamovibles_total:
     p_renta, p_transp = META_RENTA/meta_inamovibles_total, META_TRANSPORTE/meta_inamovibles_total
@@ -104,43 +104,43 @@ else:
     f_colchon = min(f_aux, 250.0); f_aux -= f_colchon
     f_retiro = f_aux
 
+# Distribución VARIABLE (Rescate)
 v_aux = var_neto
 v_renta = min(v_aux, max(0, META_RENTA - f_renta)); v_aux -= v_renta
 v_transp = min(v_aux, max(0, META_TRANSPORTE - f_transp)); v_aux -= v_transp
 v_novia = min(v_aux, max(0, META_NOVIA - f_novia)); v_aux -= v_novia
 v_viajes = min(v_aux, max(0, META_VIAJES - f_viajes)); v_aux -= v_viajes
 
+# Excedente Variable
 if v_aux > 0:
     v_ahorro_t = v_aux * 0.50
     v_deuda, v_retiro = v_aux * 0.30, v_aux * 0.20
     v_emerg, v_colchon = v_ahorro_t * 0.50, v_ahorro_t * 0.50
 
-# Cálculos de Déficit y Rescate
+# Cálculos de Métricas
 rescate_total = v_renta + v_transp + v_novia + v_viajes
-if var_neto > 0 and rescate_total > 0:
-    pct_rescate = (rescate_total / var_neto) * 100
-    texto_rescate = f"{pct_rescate:.1f}%"
-else:
-    texto_rescate = "Nada"
+texto_rescate = f"{(rescate_total / var_neto) * 100:.1f}%" if var_neto > 0 and rescate_total > 0 else "Nada"
 
 asignado_basicos = f_renta + v_renta + f_transp + v_transp + f_novia + v_novia + f_viajes + v_viajes
 deficit_basico = meta_inamovibles_total - asignado_basicos
 
-# Creación de DataFrame
+# Creación de DataFrame simplificado
 data = [
-    {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Meta": 0, "Fijo": diezmo_fijo, "Variable": diezmo_var},
-    {"Concepto": "Renta", "Plataforma": "NU (Cajita)", "Meta": META_RENTA, "Fijo": f_renta, "Variable": v_renta},
-    {"Concepto": "Transporte", "Plataforma": "NU (Gasto)", "Meta": META_TRANSPORTE, "Fijo": f_transp, "Variable": v_transp},
-    {"Concepto": "Novia", "Plataforma": "NU (Gasto)", "Meta": META_NOVIA, "Fijo": f_novia, "Variable": v_novia},
-    {"Concepto": "Viajes/Visitas", "Plataforma": "SPIN", "Meta": META_VIAJES, "Fijo": f_viajes, "Variable": v_viajes},
-    {"Concepto": "Deuda", "Plataforma": "Pago Deuda", "Meta": 0, "Fijo": f_deuda, "Variable": v_deuda},
-    {"Concepto": "Emergencias", "Plataforma": "CETES", "Meta": 0, "Fijo": f_emerg, "Variable": v_emerg},
-    {"Concepto": "Colchón", "Plataforma": "NU (Cajita)", "Meta": 0, "Fijo": f_colchon, "Variable": v_colchon},
-    {"Concepto": "Retiro/Bolsa", "Plataforma": "GBM+", "Meta": 0, "Fijo": f_retiro, "Variable": v_retiro},
+    {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Meta": 0, "Asignado": diezmo_fijo + diezmo_var},
+    {"Concepto": "Renta", "Plataforma": "NU (Cajita)", "Meta": META_RENTA, "Asignado": f_renta + v_renta},
+    {"Concepto": "Transporte", "Plataforma": "NU (Gasto)", "Meta": META_TRANSPORTE, "Asignado": f_transp + v_transp},
+    {"Concepto": "Novia", "Plataforma": "NU (Gasto)", "Meta": META_NOVIA, "Asignado": f_novia + v_novia},
+    {"Concepto": "Viajes/Visitas", "Plataforma": "SPIN", "Meta": META_VIAJES, "Asignado": f_viajes + v_viajes},
+    {"Concepto": "Deuda", "Plataforma": "Pago Deuda", "Meta": 0, "Asignado": f_deuda + v_deuda},
+    {"Concepto": "Emergencias", "Plataforma": "CETES", "Meta": 0, "Asignado": f_emerg + v_emerg},
+    {"Concepto": "Colchón", "Plataforma": "NU (Cajita)", "Meta": 0, "Asignado": f_colchon + v_colchon},
+    {"Concepto": "Retiro/Bolsa", "Plataforma": "GBM+", "Meta": 0, "Asignado": f_retiro + v_retiro},
 ]
 df = pd.DataFrame(data)
-df["Total"] = df["Fijo"] + df["Variable"]
-df["Profit"] = df.apply(lambda x: max(0, x["Total"] - x["Meta"]) if x["Meta"] > 0 else 0, axis=1)
+
+# Nueva lógica de Faltante y Excedente
+df["Faltante"] = df.apply(lambda x: max(0, x["Meta"] - x["Asignado"]) if x["Meta"] > 0 else 0, axis=1)
+df["Excedente"] = df.apply(lambda x: max(0, x["Asignado"] - x["Meta"]) if x["Meta"] > 0 else 0, axis=1)
 
 # ==========================================
 # CÁLCULOS SUPERIORES (S&P 500)
@@ -149,18 +149,13 @@ ingreso_total_bruto = ingreso_fijo_bruto + ingreso_var_bruto
 ahorro_semanal_generado = f_emerg + v_emerg + f_colchon + v_colchon
 retiro_total_semanal = f_retiro + v_retiro
 
-# Cálculo Interés Compuesto S&P 500 (10% anual a 30 años)
 r_semanal = 0.10 / 52
 semanas_30_anios = 30 * 52
-if retiro_total_semanal > 0:
-    proyeccion_sp500 = retiro_total_semanal * (((1 + r_semanal)**semanas_30_anios) - 1) / r_semanal
-else:
-    proyeccion_sp500 = 0.0
+proyeccion_sp500 = retiro_total_semanal * (((1 + r_semanal)**semanas_30_anios) - 1) / r_semanal if retiro_total_semanal > 0 else 0.0
 
 # ==========================================
 # FRONTEND
 # ==========================================
-# Fila 1: Resumen General
 st.markdown("<h4 style='color:#ffffff; text-align:center;'>RESUMEN GENERAL</h4>", unsafe_allow_html=True)
 r1, r2, r3 = st.columns(3)
 with r1: st.metric("INGRESO TOTAL BRUTO", f"${ingreso_total_bruto:,.2f}")
@@ -175,13 +170,12 @@ with r3:
 
 st.markdown("---")
 
-# Fila 2: Estatus del Sistema
 st.markdown("<h4 style='color:#ffffff; text-align:center;'>MÉTRICAS DEL SISTEMA</h4>", unsafe_allow_html=True)
 m1, m2, m3 = st.columns(3)
 with m1: st.metric("NETO SEMANAL", f"${(fijo_neto + var_neto):,.2f}")
 with m2: st.metric("% VAR. USADO EN RESCATE", texto_rescate)
 with m3: 
-    total_profit = df['Profit'].sum()
+    total_profit = df['Excedente'].sum()
     if deficit_basico > 0.01:
         st.markdown(f"""
             <div data-testid='metric-container' style='border-color: #FF000044;'>
@@ -200,22 +194,25 @@ with m3:
 
 st.markdown("---")
 
-# --- TABLA DESGLOSE DE CAPITAL REPARADA ---
+# --- TABLA DESGLOSE DE CAPITAL SIMPLIFICADA ---
 st.subheader("Desglose de Capital")
 
-# Lógica segura de estilo columna por columna (Evita colapsos en Streamlit)
-def pintar_verde_profit(s):
+def pintar_excedente(s):
     return ['color: #00E676 !important; font-weight: bold;' if v > 0 else 'color: #ffffff;' for v in s]
 
-def pintar_dorado_general(s):
+def pintar_faltante(s):
+    return ['color: #FF0000 !important; font-weight: bold;' if v > 0 else 'color: #ffffff;' for v in s]
+
+def pintar_dorado(s):
     return ['color: #d4af37 !important;' if isinstance(v, (int, float)) and v > 0 else 'color: #ffffff;' for v in s]
 
-styled_df = df.style.format({
-    "Meta": "${:,.2f}", "Fijo": "${:,.2f}", "Variable": "${:,.2f}", 
-    "Total": "${:,.2f}", "Profit": "${:,.2f}"
+styled_df = df[["Concepto", "Plataforma", "Meta", "Asignado", "Faltante", "Excedente"]].style.format({
+    "Meta": "${:,.2f}", "Asignado": "${:,.2f}", 
+    "Faltante": "${:,.2f}", "Excedente": "${:,.2f}"
 })\
-.apply(pintar_verde_profit, subset=["Profit"])\
-.apply(pintar_dorado_general, subset=["Meta", "Fijo", "Variable", "Total"])\
+.apply(pintar_excedente, subset=["Excedente"])\
+.apply(pintar_faltante, subset=["Faltante"])\
+.apply(pintar_dorado, subset=["Meta", "Asignado"])\
 .set_properties(**{'background-color': '#000000', 'border-color': '#d4af3722'})
 
 st.dataframe(styled_df, use_container_width=True, hide_index=True)
@@ -227,11 +224,11 @@ c1, c_esp, c2 = st.columns([1, 0.1, 1.2])
 
 with c1:
     st.subheader("🏦 CLABEs (Copiables)")
-    df_bancos = df.groupby("Plataforma")["Total"].sum().reset_index()
-    df_bancos = df_bancos[df_bancos["Total"] > 0]
+    df_bancos = df.groupby("Plataforma")["Asignado"].sum().reset_index()
+    df_bancos = df_bancos[df_bancos["Asignado"] > 0]
     
     for _, row in df_bancos.iterrows():
-        banco = row["Plataforma"]; monto = row["Total"]; clabe_nuda = CUENTAS.get(banco, "PENDIENTE")
+        banco = row["Plataforma"]; monto = row["Asignado"]; clabe_nuda = CUENTAS.get(banco, "PENDIENTE")
         
         st.markdown(f"<p style='margin-bottom:0px; font-weight:600; color:#d4af37;'>{banco}</p>", unsafe_allow_html=True)
         st.markdown(f"<p style='font-size:1.2rem; margin-top:0px;'>Total: <b style='color:#00E676;'>${monto:,.2f}</b></p>", unsafe_allow_html=True)
@@ -240,7 +237,7 @@ with c1:
 
 with c2:
     st.subheader("Distribución Visual")
-    fig = px.pie(df_bancos, values='Total', names='Plataforma', hole=0.7,
+    fig = px.pie(df_bancos, values='Asignado', names='Plataforma', hole=0.7,
                  color_discrete_sequence=['#d4af37', '#ffffff', '#444444', '#888888', '#00E676'])
     fig.update_layout(
         template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
