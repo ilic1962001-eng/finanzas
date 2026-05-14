@@ -124,21 +124,21 @@ texto_rescate = f"{(rescate_total / var_neto) * 100:.1f}%" if var_neto > 0 and r
 asignado_basicos = f_renta + v_renta + f_transp + v_transp + f_novia + v_novia + f_viajes + v_viajes
 deficit_basico = meta_inamovibles_total - asignado_basicos
 
-# 5. Creación de DataFrame (Con Fijo, Variable y FIT)
+# 5. Creación de DataFrame 
 data = [
-    {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Meta": 0, "Fijo": diezmo_fijo, "Variable": diezmo_var, "Asignado": diezmo_fijo + diezmo_var},
+    {"Concepto": "Diezmo", "Plataforma": "Cuenta Diezmo", "Meta": 0.0, "Fijo": diezmo_fijo, "Variable": diezmo_var, "Asignado": diezmo_fijo + diezmo_var},
     {"Concepto": "Renta", "Plataforma": "NU (Cajita)", "Meta": META_RENTA, "Fijo": f_renta, "Variable": v_renta, "Asignado": f_renta + v_renta},
     {"Concepto": "Transporte", "Plataforma": "NU (Gasto)", "Meta": META_TRANSPORTE, "Fijo": f_transp, "Variable": v_transp, "Asignado": f_transp + v_transp},
     {"Concepto": "Novia", "Plataforma": "NU (Gasto)", "Meta": META_NOVIA, "Fijo": f_novia, "Variable": v_novia, "Asignado": f_novia + v_novia},
     {"Concepto": "Viajes/Visitas", "Plataforma": "SPIN", "Meta": META_VIAJES, "Fijo": f_viajes, "Variable": v_viajes, "Asignado": f_viajes + v_viajes},
-    {"Concepto": "Deuda", "Plataforma": "Pago Deuda", "Meta": 0, "Fijo": f_deuda, "Variable": v_deuda, "Asignado": f_deuda + v_deuda},
-    {"Concepto": "Emergencias", "Plataforma": "CETES", "Meta": 0, "Fijo": f_emerg, "Variable": v_emerg, "Asignado": f_emerg + v_emerg},
-    {"Concepto": "Colchón", "Plataforma": "NU (Cajita)", "Meta": 0, "Fijo": f_colchon, "Variable": v_colchon, "Asignado": f_colchon + v_colchon},
-    {"Concepto": "Retiro/Bolsa", "Plataforma": "GBM+", "Meta": 0, "Fijo": f_retiro, "Variable": v_retiro, "Asignado": f_retiro + v_retiro},
+    {"Concepto": "Deuda", "Plataforma": "Pago Deuda", "Meta": 0.0, "Fijo": f_deuda, "Variable": v_deuda, "Asignado": f_deuda + v_deuda},
+    {"Concepto": "Emergencias", "Plataforma": "CETES", "Meta": 0.0, "Fijo": f_emerg, "Variable": v_emerg, "Asignado": f_emerg + v_emerg},
+    {"Concepto": "Colchón", "Plataforma": "NU (Cajita)", "Meta": 0.0, "Fijo": f_colchon, "Variable": v_colchon, "Asignado": f_colchon + v_colchon},
+    {"Concepto": "Retiro/Bolsa", "Plataforma": "GBM+", "Meta": 0.0, "Fijo": f_retiro, "Variable": v_retiro, "Asignado": f_retiro + v_retiro},
 ]
 df = pd.DataFrame(data)
 
-# COLUMNA FIT: Si tiene Meta inamovible, Fit = Asignado - Meta. Si Meta es 0 (ej. Deuda, Retiro), Fit = Todo lo asignado.
+# COLUMNA FIT
 df["Fit"] = df.apply(lambda x: x["Asignado"] - x["Meta"] if x["Meta"] > 0 else x["Asignado"], axis=1)
 
 # ==========================================
@@ -174,7 +174,6 @@ m1, m2, m3 = st.columns(3)
 with m1: st.metric("NETO SEMANAL", f"${(fijo_neto + var_neto):,.2f}")
 with m2: st.metric("% VAR. USADO EN RESCATE", texto_rescate)
 with m3: 
-    # Calculamos el excedente total general sumando los Fit positivos de los inamovibles
     excedente_inamovibles = sum([row["Fit"] for _, row in df.iterrows() if row["Meta"] > 0 and row["Fit"] > 0])
     
     if deficit_basico > 0.01:
@@ -195,27 +194,26 @@ with m3:
 
 st.markdown("---")
 
-# --- TABLA DESGLOSE DE CAPITAL (FIT LÓGICO Y COLORES SEGUROS) ---
+# --- TABLA DESGLOSE DE CAPITAL ---
 st.subheader("Desglose de Capital")
 
-# Lógica de coloreado por fila evaluando los números CRUDOS (antes de volverse texto)
-def colorear_tabla(row):
-    styles = ['color: #ffffff;'] * len(row)
-    for i, col in enumerate(row.index):
-        val = row[col]
-        # El FIT se pinta Verde si es positivo, Rojo si es negativo
-        if col == 'Fit':
-            if val > 0.01:
-                styles[i] = 'color: #00E676 !important; font-weight: 800;'
-            elif val < -0.01:
-                styles[i] = 'color: #FF0000 !important; font-weight: 800;'
-        # El resto del dinero se pinta Dorado si es mayor a cero
-        elif col in ['Meta', 'Fijo', 'Variable', 'Asignado']:
-            if val > 0.01:
-                styles[i] = 'color: #d4af37 !important;'
-    return styles
+# Funciones seguras de coloreo usando .map()
+def pintar_fit(val):
+    if isinstance(val, (int, float)):
+        if val > 0.01:
+            return 'color: #00E676 !important; font-weight: 800;'
+        elif val < -0.01:
+            return 'color: #FF0000 !important; font-weight: 800;'
+    return 'color: #ffffff;'
 
-styled_df = df.style.apply(colorear_tabla, axis=1)\
+def pintar_dorado(val):
+    if isinstance(val, (int, float)) and val > 0.01:
+        return 'color: #d4af37 !important;'
+    return 'color: #ffffff;'
+
+# Aplicamos los estilos columna por columna
+styled_df = df.style.map(pintar_fit, subset=["Fit"])\
+    .map(pintar_dorado, subset=["Meta", "Fijo", "Variable", "Asignado"])\
     .format({
         "Meta": "${:,.2f}", "Fijo": "${:,.2f}", "Variable": "${:,.2f}",
         "Asignado": "${:,.2f}", "Fit": "${:,.2f}"
