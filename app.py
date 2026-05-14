@@ -5,7 +5,7 @@ import plotly.express as px
 # ==========================================
 # CONFIGURACIÓN PREMIUM Y ESTILOS
 # ==========================================
-st.set_page_config(page_title="Dashboard Cascada Pro", layout="wide", page_icon="💧")
+st.set_page_config(page_title="Te amo Mirssa", layout="wide", page_icon="3")
 
 st.markdown("""
     <style>
@@ -210,16 +210,18 @@ st.dataframe(df_display, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
-# TRANSFERENCIAS (CLABES NEGRAS)
-c1, c2 = st.columns([1, 1.2])
-with c1:
-    st.subheader("🏦 CLABEs (Copiables)")
-    df_b = df.groupby("Plataforma")["Asignado"].sum().reset_index()
-    for _, row in df_b[df_b["Asignado"] > 0].iterrows():
-        st.markdown(f"<p style='margin-bottom:0px; font-weight:600; color:#d4af37;'>{row['Plataforma']}</p>", unsafe_allow_html=True)
-        st.markdown(f"<p style='font-size:1.2rem; margin-top:0px;'>Total: <b style='color:#00E676;'>${row['Asignado']:,.2f}</b></p>", unsafe_allow_html=True)
-        st.code(CUENTAS.get(row['Plataforma'], "PENDIENTE"), language=None)
-        st.markdown("<br>", unsafe_allow_html=True)
+/* CLABES: Fondo blanco con letras NEGRAS para máxima legibilidad */
+    div[data-testid="stCodeBlock"] { 
+        background-color: #FFFFFF !important; 
+        border: 1px solid #d4af37 !important; 
+        border-radius: 4px !important; 
+    }
+    div[data-testid="stCodeBlock"] code, 
+    div[data-testid="stCodeBlock"] span { 
+        color: #000000 !important; 
+        font-size: 1.1rem !important; 
+        font-weight: 800 !important;
+    }
 
 with c2:
     st.subheader("Distribución Visual")
