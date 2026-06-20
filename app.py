@@ -151,7 +151,10 @@ with col_izq:
     st.markdown("<div class='panel-izquierdo'>", unsafe_allow_html=True)
     st.markdown("<h3 style='color:#d4af37; font-size: 1.5rem;'>Flujo de Capital</h3>", unsafe_allow_html=True)
     
-    ingreso_fijo_bruto = st.number_input("INGR. FIJO ($)", min_value=0.0, step=100.0, key="val_fijo")
+    # NUEVO CHECKBOX PARA OMITIR INGRESO FIJO
+    omitir_fijo = st.checkbox("OMITIR INGRESO FIJO", value=False, help="Actívalo si ya cubriste las metas mínimas con ahorros pasados.")
+    
+    ingreso_fijo_bruto = st.number_input("INGR. FIJO ($)", min_value=0.0, step=100.0, key="val_fijo", disabled=omitir_fijo)
     ingreso_var_bruto = st.number_input("INGR. VARIABLE ($)", min_value=0.0, step=100.0, key="val_var")
     
     st.button("CONFIRMO QUE YA DEPOSITÉ TODO COMO DEBE SER", on_click=confirmar_deposito)
@@ -181,48 +184,61 @@ with col_izq:
 
 with col_der:
     # ==========================================
-    # LÓGICA DE DISTRIBUCIÓN
+    # LÓGICA DE DISTRIBUCIÓN ADAPTATIVA
     # ==========================================
-    diezmo_fijo = ingreso_fijo_bruto * DIEZMO_PCT; fijo_neto = ingreso_fijo_bruto - diezmo_fijo
     diezmo_var = ingreso_var_bruto * DIEZMO_PCT; var_neto = ingreso_var_bruto - diezmo_var
 
     f_renta = f_transp = f_novia = f_viajes = f_deuda = f_emerg = f_colchon = f_retiro = 0
     v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_retiro = 0
+    diezmo_fijo = 0.0; fijo_neto = 0.0; capacidad_gasto_fijo = 0.0
 
-    capacidad_gasto_fijo = fijo_neto * GASTO_PCT
-    if capacidad_gasto_fijo >= meta_inamovibles_total:
-        p_renta, p_transp = META_RENTA/meta_inamovibles_total, META_TRANSPORTE/meta_inamovibles_total
-        p_novia, p_viajes = META_NOVIA/meta_inamovibles_total, META_VIAJES/meta_inamovibles_total
-        f_renta, f_transp = capacidad_gasto_fijo*p_renta, capacidad_gasto_fijo*p_transp
-        f_novia, f_viajes = capacidad_gasto_fijo*p_novia, capacidad_gasto_fijo*p_viajes
-        f_deuda, f_retiro = fijo_neto*DEUDA_PCT, fijo_neto*INVERSION_PCT
-        f_emerg, f_colchon = (fijo_neto*AHORRO_PCT)*0.5, (fijo_neto*AHORRO_PCT)*0.5
+    if omitir_fijo:
+        # ESCENARIO: INGRESOS FIJOS OMITIDOS (METAS MÍNIMAS YA CUBIERTAS)
+        deficit_total = 0.0
+        v_aux = var_neto
+        if v_aux > 0:
+            v_ahorro_t = v_aux * 0.50
+            v_deuda, v_retiro = v_aux * 0.30, v_aux * 0.20
+            v_emerg, v_colchon = v_ahorro_t * 0.50, v_ahorro_t * 0.50
     else:
-        f_aux = fijo_neto
-        f_renta = min(f_aux, META_RENTA); f_aux -= f_renta
-        f_transp = min(f_aux, META_TRANSPORTE); f_aux -= f_transp
-        f_novia = min(f_aux, META_NOVIA); f_aux -= f_novia
-        f_viajes = min(f_aux, META_VIAJES); f_aux -= f_viajes
-        f_deuda = min(f_aux, 400.0); f_aux -= f_deuda
-        f_emerg = min(f_aux, 250.0); f_aux -= f_emerg
-        f_colchon = min(f_aux, 250.0); f_aux -= f_colchon
-        f_retiro = f_aux
+        # ESCENARIO ORIGINAL: CON INGRESO FIJO
+        diezmo_fijo = ingreso_fijo_bruto * DIEZMO_PCT; fijo_neto = ingreso_fijo_bruto - diezmo_fijo
+        capacidad_gasto_fijo = fijo_neto * GASTO_PCT
+        
+        if capacidad_gasto_fijo >= meta_inamovibles_total:
+            p_renta, p_transp = META_RENTA/meta_inamovibles_total, META_TRANSPORTE/meta_inamovibles_total
+            p_novia, p_viajes = META_NOVIA/meta_inamovibles_total, META_VIAJES/meta_inamovibles_total
+            f_renta, f_transp = capacidad_gasto_fijo*p_renta, capacidad_gasto_fijo*p_transp
+            f_novia, f_viajes = capacidad_gasto_fijo*p_novia, capacidad_gasto_fijo*p_viajes
+            f_deuda, f_retiro = fijo_neto*DEUDA_PCT, fijo_neto*INVERSION_PCT
+            f_emerg, f_colchon = (fijo_neto*AHORRO_PCT)*0.5, (fijo_neto*AHORRO_PCT)*0.5
+        else:
+            f_aux = fijo_neto
+            f_renta = min(f_aux, META_RENTA); f_aux -= f_renta
+            f_transp = min(f_aux, META_TRANSPORTE); f_aux -= f_transp
+            f_novia = min(f_aux, META_NOVIA); f_aux -= f_novia
+            f_viajes = min(f_aux, META_VIAJES); f_aux -= f_viajes
+            f_deuda = min(f_aux, 400.0); f_aux -= f_deuda
+            f_emerg = min(f_aux, 250.0); f_aux -= f_emerg
+            f_colchon = min(f_aux, 250.0); f_aux -= f_colchon
+            f_retiro = f_aux
 
-    v_aux = var_neto
-    v_renta = min(v_aux, max(0, META_RENTA - f_renta)); v_aux -= v_renta
-    v_transp = min(v_aux, max(0, META_TRANSPORTE - f_transp)); v_aux -= v_transp
-    v_novia = min(v_aux, max(0, META_NOVIA - f_novia)); v_aux -= v_novia
-    v_viajes = min(v_aux, max(0, META_VIAJES - f_viajes)); v_aux -= v_viajes
+        v_aux = var_neto
+        v_renta = min(v_aux, max(0, META_RENTA - f_renta)); v_aux -= v_renta
+        v_transp = min(v_aux, max(0, META_TRANSPORTE - f_transp)); v_aux -= v_transp
+        v_novia = min(v_aux, max(0, META_NOVIA - f_novia)); v_aux -= v_novia
+        v_viajes = min(v_aux, max(0, META_VIAJES - f_viajes)); v_aux -= v_viajes
 
-    if v_aux > 0:
-        v_ahorro_t = v_aux * 0.50
-        v_deuda, v_retiro = v_aux * 0.30, v_aux * 0.20
-        v_emerg, v_colchon = v_ahorro_t * 0.50, v_ahorro_t * 0.50
+        if v_aux > 0:
+            v_ahorro_t = v_aux * 0.50
+            v_deuda, v_retiro = v_aux * 0.30, v_aux * 0.20
+            v_emerg, v_colchon = v_ahorro_t * 0.50, v_ahorro_t * 0.50
+
+        deficit_total = meta_inamovibles_total - (f_renta + v_renta + f_transp + v_transp + f_novia + v_novia + f_viajes + v_viajes)
 
     rescate_total = v_renta + v_transp + v_novia + v_viajes
     texto_rescate = f"{(rescate_total / var_neto) * 100:.1f}%" if var_neto > 0 and rescate_total > 0 else "Nada"
-    deficit_total = meta_inamovibles_total - (f_renta + v_renta + f_transp + v_transp + f_novia + v_novia + f_viajes + v_viajes)
-
+    
     retiro_total = f_retiro + v_retiro
     proyeccion = retiro_total * (((1 + (0.10/52))**(30 * 52)) - 1) / (0.10/52) if retiro_total > 0 else 0
 
@@ -231,7 +247,9 @@ with col_der:
     # ==========================================
     st.markdown("### RESUMEN SEMANAL")
     c1, c2, c3 = st.columns(3)
-    with c1: st.metric("INGRESO BRUTO TOTAL", f"${(ingreso_fijo_bruto + ingreso_var_bruto):,.2f}")
+    with c1: 
+        ingreso_bruto_calculado = ingreso_var_bruto if omitir_fijo else (ingreso_fijo_bruto + ingreso_var_bruto)
+        st.metric("INGRESO BRUTO EVALUADO", f"${ingreso_bruto_calculado:,.2f}")
     with c2: st.metric("AHORRO TOTAL GENERADO", f"${(f_emerg + v_emerg + f_colchon + v_colchon):,.2f}")
     with c3: 
         st.markdown(f"<div data-testid='metric-container'><label data-testid='stMetricLabel'>PATRIMONIO 30 AÑOS (S&P 500)</label><div data-testid='stMetricValue' style='color: #00E676 !important;'>${proyeccion:,.2f}</div></div>", unsafe_allow_html=True)
@@ -239,11 +257,15 @@ with col_der:
     st.markdown("---")
 
     c4, c5, c6 = st.columns(3)
-    with c4: st.metric("CAPITAL NETO", f"${(fijo_neto + var_neto):,.2f}")
-    with c5: st.metric("% VAR. PARA RESCATE", texto_rescate)
+    with c4: 
+        capital_neto_calculado = var_neto if omitir_fijo else (fijo_neto + var_neto)
+        st.metric("CAPITAL NETO", f"${capital_neto_calculado:,.2f}")
+    with c5: st.metric("% VAR. PARA RESCATE", "Omitido (Mínimos Cubiertos)" if omitir_fijo else texto_rescate)
     with c6: 
         profit_final = max(0, capacidad_gasto_fijo - meta_inamovibles_total) if capacidad_gasto_fijo > meta_inamovibles_total else 0
-        if deficit_total > 0.01:
+        if omitir_fijo:
+            st.markdown(f"<div data-testid='metric-container'><label data-testid='stMetricLabel'>ESTADO MÍNIMOS</label><div data-testid='stMetricValue' style='color: #00E676 !important;'>CUBIERTOS ✅</div></div>", unsafe_allow_html=True)
+        elif deficit_total > 0.01:
             st.markdown(f"<div data-testid='metric-container' style='border-color: #FF000066;'><label data-testid='stMetricLabel' style='color: #FF0000 !important;'>DÉFICIT DE MÍNIMOS</label><div data-testid='stMetricValue' style='color: #FF0000 !important;'>-${deficit_total:,.2f}</div></div>", unsafe_allow_html=True)
         else:
             st.markdown(f"<div data-testid='metric-container'><label data-testid='stMetricLabel'>PROFIT EN SOBRES</label><div data-testid='stMetricValue' style='color: #00E676 !important;'>${profit_final:,.2f}</div></div>", unsafe_allow_html=True)
@@ -253,10 +275,14 @@ with col_der:
     st.subheader("Desglose de Capital")
     df_data = [
         {"Sobre": "Diezmo", "Meta": "S/M", "Fijo": f"${diezmo_fijo:,.2f}", "Variable": f"${diezmo_var:,.2f}", "Total": f"${(diezmo_fijo+diezmo_var):,.2f}", "Fit": "⚪ OK"},
-        {"Sobre": "Renta", "Meta": f"${META_RENTA:,.2f}", "Fijo": f"${f_renta:,.2f}", "Variable": f"${v_renta:,.2f}", "Total": f"${(f_renta+v_renta):,.2f}", "Fit": f"🟢 +${max(0, (f_renta+v_renta)-META_RENTA):,.2f}" if (f_renta+v_renta)>=META_RENTA else f"🔴 -${META_RENTA-(f_renta+v_renta):,.2f}"},
-        {"Sobre": "Transporte", "Meta": f"${META_TRANSPORTE:,.2f}", "Fijo": f"${f_transp:,.2f}", "Variable": f"${v_transp:,.2f}", "Total": f"${(f_transp+v_transp):,.2f}", "Fit": f"🟢 +${max(0, (f_transp+v_transp)-META_TRANSPORTE):,.2f}" if (f_transp+v_transp)>=META_TRANSPORTE else f"🔴 -${META_TRANSPORTE-(f_transp+v_transp):,.2f}"},
-        {"Sobre": "Novia", "Meta": f"${META_NOVIA:,.2f}", "Fijo": f"${f_novia:,.2f}", "Variable": f"${v_novia:,.2f}", "Total": f"${(f_novia+v_novia):,.2f}", "Fit": f"🟢 +${max(0, (f_novia+v_novia)-META_NOVIA):,.2f}" if (f_novia+v_novia)>=META_NOVIA else f"🔴 -${META_NOVIA-(f_novia+v_novia):,.2f}"},
-        {"Sobre": "Viajes", "Meta": f"${META_VIAJES:,.2f}", "Fijo": f"${f_viajes:,.2f}", "Variable": f"${v_viajes:,.2f}", "Total": f"${(f_viajes+v_viajes):,.2f}", "Fit": f"🟢 +${max(0, (f_viajes+v_viajes)-META_VIAJES):,.2f}" if (f_viajes+v_viajes)>=META_VIAJES else f"🔴 -${META_VIAJES-(f_viajes+v_viajes):,.2f}"},
+        {"Sobre": "Renta", "Meta": f"${META_RENTA:,.2f}", "Fijo": f"${f_renta:,.2f}", "Variable": f"${v_renta:,.2f}", "Total": f"${(f_renta+v_renta):,.2f}", 
+         "Fit": "🔵 Cubierto (Previo)" if omitir_fijo else (f"🟢 +${max(0, (f_renta+v_renta)-META_RENTA):,.2f}" if (f_renta+v_renta)>=META_RENTA else f"🔴 -${META_RENTA-(f_renta+v_renta):,.2f}")},
+        {"Sobre": "Transporte", "Meta": f"${META_TRANSPORTE:,.2f}", "Fijo": f"${f_transp:,.2f}", "Variable": f"${v_transp:,.2f}", "Total": f"${(f_transp+v_transp):,.2f}", 
+         "Fit": "🔵 Cubierto (Previo)" if omitir_fijo else (f"🟢 +${max(0, (f_transp+v_transp)-META_TRANSPORTE):,.2f}" if (f_transp+v_transp)>=META_TRANSPORTE else f"🔴 -${META_TRANSPORTE-(f_transp+v_transp):,.2f}")},
+        {"Sobre": "Novia", "Meta": f"${META_NOVIA:,.2f}", "Fijo": f"${f_novia:,.2f}", "Variable": f"${v_novia:,.2f}", "Total": f"${(f_novia+v_novia):,.2f}", 
+         "Fit": "🔵 Cubierto (Previo)" if omitir_fijo else (f"🟢 +${max(0, (f_renta+v_renta)-META_NOVIA):,.2f}" if (f_renta+v_renta)>=META_NOVIA else f"🔴 -${META_NOVIA-(f_renta+v_renta):,.2f}")},
+        {"Sobre": "Viajes", "Meta": f"${META_VIAJES:,.2f}", "Fijo": f"${f_viajes:,.2f}", "Variable": f"${v_viajes:,.2f}", "Total": f"${(f_viajes+v_viajes):,.2f}", 
+         "Fit": "🔵 Cubierto (Previo)" if omitir_fijo else (f"🟢 +${max(0, (f_renta+v_renta)-META_VIAJES):,.2f}" if (f_renta+v_renta)>=META_VIAJES else f"🔴 -${META_VIAJES-(f_renta+v_renta):,.2f}")},
         {"Sobre": "Deuda", "Meta": "S/M", "Fijo": f"${f_deuda:,.2f}", "Variable": f"${v_deuda:,.2f}", "Total": f"${(f_deuda+v_deuda):,.2f}", "Fit": "⚪ OK"},
         {"Sobre": "Emergencias", "Meta": "S/M", "Fijo": f"${f_emerg:,.2f}", "Variable": f"${v_emerg:,.2f}", "Total": f"${(f_emerg+v_emerg):,.2f}", "Fit": "⚪ OK"},
         {"Sobre": "Colchón", "Meta": "S/M", "Fijo": f"${f_colchon:,.2f}", "Variable": f"${v_colchon:,.2f}", "Total": f"${(f_colchon+v_colchon):,.2f}", "Fit": "⚪ OK"},
