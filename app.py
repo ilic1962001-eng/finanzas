@@ -19,13 +19,18 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# CONSTANTES FINANCIERAS (Ajustado con 10% Ocio)
+# EL GATILLO: PORCENTAJES ÓPTIMOS (100% TOTAL)
 # ==========================================
 DIEZMO_PCT = 0.10
-DEUDA_PCT = 0.30
-INVERSION_PCT = 0.20
-OCIO_PCT = 0.10
-AHORRO_PCT = 0.40  # (20% Emergencias + 20% Colchón)
+
+# 50% de tus ingresos netos van a Inamovibles (cuando se activa el gatillo)
+GASTOS_PCT = 0.50  
+
+# El otro 50% va a Crecimiento, distribuido así:
+DEUDA_PCT = 0.15     # (Equivale al 30% del bloque de crecimiento)
+INVERSION_PCT = 0.10 # (Equivale al 20% del bloque de crecimiento)
+AHORRO_PCT = 0.20    # (Equivale al 40% del bloque de crecimiento)
+OCIO_PCT = 0.05      # (Equivale al 10% del bloque de crecimiento)
 
 META_RENTA = 1000.0
 META_TRANSPORTE = 300.0
@@ -53,7 +58,7 @@ with st.container():
 st.markdown("---")
 
 # ==========================================
-# CEREBRO MATEMÁTICO (CASCADA)
+# CEREBRO MATEMÁTICO (MODO DUAL)
 # ==========================================
 fijo_disponible = max(0.0, ingreso_fijo_bruto - deducciones)
 
@@ -68,27 +73,47 @@ v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_reti
 if omitir_fijo:
     v_aux = var_neto
     if v_aux > 0:
-        v_deuda = v_aux * DEUDA_PCT
-        v_retiro = v_aux * INVERSION_PCT
-        v_ocio = v_aux * OCIO_PCT
-        v_ahorro_t = v_aux * AHORRO_PCT
+        # Ponderación al 100% del sobrante
+        v_deuda = v_aux * (DEUDA_PCT / 0.50)
+        v_retiro = v_aux * (INVERSION_PCT / 0.50)
+        v_ocio = v_aux * (OCIO_PCT / 0.50)
+        v_ahorro_t = v_aux * (AHORRO_PCT / 0.50)
         v_emerg = v_ahorro_t * 0.50
         v_colchon = v_ahorro_t * 0.50
 else:
-    f_aux = fijo_neto
-    f_renta = min(f_aux, META_RENTA); f_aux -= f_renta
-    f_transp = min(f_aux, META_TRANSPORTE); f_aux -= f_transp
-    f_novia = min(f_aux, META_NOVIA); f_aux -= f_novia
-    f_viajes = min(f_aux, META_VIAJES); f_aux -= f_viajes
+    capacidad_gastos = fijo_neto * GASTOS_PCT
     
-    if f_aux > 0:
-        f_deuda = f_aux * DEUDA_PCT
-        f_retiro = f_aux * INVERSION_PCT
-        f_ocio = f_aux * OCIO_PCT
-        f_ahorro_t = f_aux * AHORRO_PCT
+    if capacidad_gastos >= meta_inamovibles_total:
+        # 🔥 MODO ÓPTIMO (GATILLO ACTIVADO): Los sobres crecen, nada se congela
+        factor_crecimiento = capacidad_gastos / meta_inamovibles_total
+        f_renta = META_RENTA * factor_crecimiento
+        f_transp = META_TRANSPORTE * factor_crecimiento
+        f_novia = META_NOVIA * factor_crecimiento
+        f_viajes = META_VIAJES * factor_crecimiento
+        
+        f_deuda = fijo_neto * DEUDA_PCT
+        f_retiro = fijo_neto * INVERSION_PCT
+        f_ocio = fijo_neto * OCIO_PCT
+        f_ahorro_t = fijo_neto * AHORRO_PCT
         f_emerg = f_ahorro_t * 0.50
         f_colchon = f_ahorro_t * 0.50
+    else:
+        # 🛡️ MODO CASCADA (SUPERVIVENCIA): Aseguramos mínimos, remanente a crecimiento
+        f_aux = fijo_neto
+        f_renta = min(f_aux, META_RENTA); f_aux -= f_renta
+        f_transp = min(f_aux, META_TRANSPORTE); f_aux -= f_transp
+        f_novia = min(f_aux, META_NOVIA); f_aux -= f_novia
+        f_viajes = min(f_aux, META_VIAJES); f_aux -= f_viajes
+        
+        if f_aux > 0:
+            f_deuda = f_aux * (DEUDA_PCT / 0.50)
+            f_retiro = f_aux * (INVERSION_PCT / 0.50)
+            f_ocio = f_aux * (OCIO_PCT / 0.50)
+            f_ahorro_t = f_aux * (AHORRO_PCT / 0.50)
+            f_emerg = f_ahorro_t * 0.50
+            f_colchon = f_ahorro_t * 0.50
 
+# Rescate con Ingreso Variable
 v_aux = var_neto
 v_renta = min(v_aux, max(0.0, META_RENTA - f_renta)); v_aux -= v_renta
 v_transp = min(v_aux, max(0.0, META_TRANSPORTE - f_transp)); v_aux -= v_transp
@@ -96,10 +121,10 @@ v_novia = min(v_aux, max(0.0, META_NOVIA - f_novia)); v_aux -= v_novia
 v_viajes = min(v_aux, max(0.0, META_VIAJES - f_viajes)); v_aux -= v_viajes
 
 if v_aux > 0 and not omitir_fijo:
-    v_deuda = v_aux * DEUDA_PCT
-    v_retiro = v_aux * INVERSION_PCT
-    v_ocio = v_aux * OCIO_PCT
-    v_ahorro_t = v_aux * AHORRO_PCT
+    v_deuda = v_aux * (DEUDA_PCT / 0.50)
+    v_retiro = v_aux * (INVERSION_PCT / 0.50)
+    v_ocio = v_aux * (OCIO_PCT / 0.50)
+    v_ahorro_t = v_aux * (AHORRO_PCT / 0.50)
     v_emerg = v_ahorro_t * 0.50
     v_colchon = v_ahorro_t * 0.50
 
@@ -130,7 +155,7 @@ with c2: st.metric("CRECIMIENTO/AHORRO", f"${(t_emerg + t_colchon + t_deuda + t_
 with c3: st.metric("PATRIMONIO PROYECTADO", f"${proyeccion:,.2f}")
 with c4:
     if omitir_fijo or deficit_total <= 0.01:
-        st.metric("ESTADO INAMOVIBLES", "CUBIERTOS ✅")
+        st.metric("ESTADO INAMOVIBLES", "CUBIERTOS ✅" if (f_renta + v_renta) <= META_RENTA else "EXPANDIDOS 🔥")
     else:
         st.metric("DÉFICIT INAMOVIBLES", f"-${deficit_total:,.2f}")
 
