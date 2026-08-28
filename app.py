@@ -19,13 +19,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# CONSTANTES FINANCIERAS (Ajustado con 5% Ocio)
+# CONSTANTES FINANCIERAS (Ajustado con 10% Ocio)
 # ==========================================
 DIEZMO_PCT = 0.10
 DEUDA_PCT = 0.30
 INVERSION_PCT = 0.20
-OCIO_PCT = 0.05
-AHORRO_PCT = 0.45  # (22.5% Emergencias + 22.5% Colchón)
+OCIO_PCT = 0.10
+AHORRO_PCT = 0.40  # (20% Emergencias + 20% Colchón)
 
 META_RENTA = 1000.0
 META_TRANSPORTE = 300.0
@@ -147,31 +147,31 @@ df_data = [
     {"Sobre": "💖 Novia", "Meta": f"${META_NOVIA:,.2f}", "Fijo": f"${f_novia:,.2f}", "Variable": f"${v_novia:,.2f}", "Total": f"${t_novia:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_novia>=META_NOVIA else f"🔴 -${META_NOVIA-t_novia:,.2f}")},
     {"Sobre": "✈️ Viajes", "Meta": f"${META_VIAJES:,.2f}", "Fijo": f"${f_viajes:,.2f}", "Variable": f"${v_viajes:,.2f}", "Total": f"${t_viajes:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_viajes>=META_VIAJES else f"🔴 -${META_VIAJES-t_viajes:,.2f}")},
     {"Sobre": "💳 Deuda (30%)", "Meta": "S/M", "Fijo": f"${f_deuda:,.2f}", "Variable": f"${v_deuda:,.2f}", "Total": f"${t_deuda:,.2f}", "Estado": "🔥 Acelerando"},
-    {"Sobre": "🚨 Emergencias (22.5%)", "Meta": "S/M", "Fijo": f"${f_emerg:,.2f}", "Variable": f"${v_emerg:,.2f}", "Total": f"${t_emerg:,.2f}", "Estado": "🛡️ OK"},
-    {"Sobre": "🛌 Colchón (22.5%)", "Meta": "S/M", "Fijo": f"${f_colchon:,.2f}", "Variable": f"${v_colchon:,.2f}", "Total": f"${t_colchon:,.2f}", "Estado": "🛡️ OK"},
+    {"Sobre": "🚨 Emergencias (20%)", "Meta": "S/M", "Fijo": f"${f_emerg:,.2f}", "Variable": f"${v_emerg:,.2f}", "Total": f"${t_emerg:,.2f}", "Estado": "🛡️ OK"},
+    {"Sobre": "🛌 Colchón (20%)", "Meta": "S/M", "Fijo": f"${f_colchon:,.2f}", "Variable": f"${v_colchon:,.2f}", "Total": f"${t_colchon:,.2f}", "Estado": "🛡️ OK"},
     {"Sobre": "📈 Retiro (20%)", "Meta": "S/M", "Fijo": f"${f_retiro:,.2f}", "Variable": f"${v_retiro:,.2f}", "Total": f"${t_retiro:,.2f}", "Estado": "🚀 S&P 500"},
-    {"Sobre": "🍿 Ocio (5%)", "Meta": "S/M", "Fijo": f"${f_ocio:,.2f}", "Variable": f"${v_ocio:,.2f}", "Total": f"${t_ocio:,.2f}", "Estado": "🎮 A disfrutar"}
+    {"Sobre": "🍿 Ocio (10%)", "Meta": "S/M", "Fijo": f"${f_ocio:,.2f}", "Variable": f"${v_ocio:,.2f}", "Total": f"${t_ocio:,.2f}", "Estado": "🎮 A disfrutar"}
 ]
 st.dataframe(pd.DataFrame(df_data), use_container_width=True, hide_index=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==========================================
-# 2. NUEVA TABLA: GUÍA DE DEPÓSITOS (BANCOS)
+# 2. NUEVA TABLA: GUÍA DE DEPÓSITOS CONSOLIDADOS
 # ==========================================
 st.markdown("### 🏦 GUÍA DE DEPÓSITOS (¿A dónde mando el dinero?)")
 
+# Variable consolidada para Nu
+t_nu_total = t_renta + t_transp + t_emerg + t_colchon
+
 df_bancos = [
-    {"Sobre": "⛪ Diezmo", "Monto": f"${t_diezmo:,.2f}", "Institución": "Revolut", "CLABE / Cuenta": "% %"},
-    {"Sobre": "🏠 Renta", "Monto": f"${t_renta:,.2f}", "Institución": "Nu", "CLABE / Cuenta": "638180000126660124"},
-    {"Sobre": "🚗 Transporte", "Monto": f"${t_transp:,.2f}", "Institución": "Nu", "CLABE / Cuenta": "638180000126660124"},
-    {"Sobre": "🚨 Emergencias", "Monto": f"${t_emerg:,.2f}", "Institución": "Nu", "CLABE / Cuenta": "638180000126660124"},
-    {"Sobre": "🛌 Colchón", "Monto": f"${t_colchon:,.2f}", "Institución": "Nu", "CLABE / Cuenta": "638180000126660124"},
-    {"Sobre": "📈 Retiro", "Monto": f"${t_retiro:,.2f}", "Institución": "GBM", "CLABE / Cuenta": "% %"},
-    {"Sobre": "💳 Deuda", "Monto": f"${t_deuda:,.2f}", "Institución": "Otra Cuenta", "CLABE / Cuenta": "% %"},
-    {"Sobre": "✈️ Viajes", "Monto": f"${t_viajes:,.2f}", "Institución": "Otra Cuenta", "CLABE / Cuenta": "% %"},
-    {"Sobre": "💖 Novia", "Monto": f"${t_novia:,.2f}", "Institución": "Apartado Libre", "CLABE / Cuenta": "% %"},
-    {"Sobre": "🍿 Ocio", "Monto": f"${t_ocio:,.2f}", "Institución": "Cuenta Uso Diario", "CLABE / Cuenta": "% %"}
+    {"Destino": "⛪ Diezmo", "Monto a Transferir": f"${t_diezmo:,.2f}", "Institución": "Revolut", "CLABE / Cuenta": "% %"},
+    {"Destino": "🟣 Consolidado Nu (Renta, Transp, Emerg, Colchón)", "Monto a Transferir": f"${t_nu_total:,.2f}", "Institución": "Nu", "CLABE / Cuenta": "638180000126660124"},
+    {"Destino": "📈 Retiro", "Monto a Transferir": f"${t_retiro:,.2f}", "Institución": "GBM", "CLABE / Cuenta": "% %"},
+    {"Destino": "💳 Deuda", "Monto a Transferir": f"${t_deuda:,.2f}", "Institución": "Otra Cuenta", "CLABE / Cuenta": "% %"},
+    {"Destino": "✈️ Viajes", "Monto a Transferir": f"${t_viajes:,.2f}", "Institución": "Otra Cuenta", "CLABE / Cuenta": "% %"},
+    {"Destino": "💖 Novia", "Monto a Transferir": f"${t_novia:,.2f}", "Institución": "Apartado Libre", "CLABE / Cuenta": "% %"},
+    {"Destino": "🍿 Ocio", "Monto a Transferir": f"${t_ocio:,.2f}", "Institución": "Cuenta Uso Diario", "CLABE / Cuenta": "% %"}
 ]
 st.dataframe(pd.DataFrame(df_bancos), use_container_width=True, hide_index=True)
 
