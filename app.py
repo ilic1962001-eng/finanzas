@@ -19,18 +19,16 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# EL GATILLO: PORCENTAJES ÓPTIMOS (100% TOTAL)
+# CONSTANTES FINANCIERAS
 # ==========================================
 DIEZMO_PCT = 0.10
 
-# 50% de tus ingresos netos van a Inamovibles (cuando se activa el gatillo)
-GASTOS_PCT = 0.50  
-
-# El otro 50% va a Crecimiento, distribuido así:
-DEUDA_PCT = 0.15     # (Equivale al 30% del bloque de crecimiento)
-INVERSION_PCT = 0.10 # (Equivale al 20% del bloque de crecimiento)
-AHORRO_PCT = 0.20    # (Equivale al 40% del bloque de crecimiento)
-OCIO_PCT = 0.05      # (Equivale al 10% del bloque de crecimiento)
+# Proporciones de Crecimiento (Suman 100% del bloque restante)
+P_DEUDA = 0.30
+P_RETIRO = 0.20
+P_OCIO = 0.10
+P_EMERG = 0.20
+P_COLCHON = 0.20
 
 META_RENTA = 1000.0
 META_TRANSPORTE = 300.0
@@ -58,7 +56,7 @@ with st.container():
 st.markdown("---")
 
 # ==========================================
-# CEREBRO MATEMÁTICO (MODO DUAL)
+# NUEVO CEREBRO MATEMÁTICO (FONDO UNIFICADO)
 # ==========================================
 fijo_disponible = max(0.0, ingreso_fijo_bruto - deducciones)
 
@@ -67,73 +65,55 @@ fijo_neto = fijo_disponible - diezmo_fijo
 diezmo_var = ingreso_var_bruto * DIEZMO_PCT
 var_neto = ingreso_var_bruto - diezmo_var
 
-f_renta = f_transp = f_novia = f_viajes = f_deuda = f_emerg = f_colchon = f_retiro = f_ocio = 0.0
-v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_retiro = v_ocio = 0.0
+total_neto = fijo_neto + var_neto
 
+# 1. Definir los "Targets" (Metas) de esta semana evaluando el total
 if omitir_fijo:
-    v_aux = var_neto
-    if v_aux > 0:
-        # Ponderación al 100% del sobrante
-        v_deuda = v_aux * (DEUDA_PCT / 0.50)
-        v_retiro = v_aux * (INVERSION_PCT / 0.50)
-        v_ocio = v_aux * (OCIO_PCT / 0.50)
-        v_ahorro_t = v_aux * (AHORRO_PCT / 0.50)
-        v_emerg = v_ahorro_t * 0.50
-        v_colchon = v_ahorro_t * 0.50
+    t_meta_renta = t_meta_transp = t_meta_novia = t_meta_viajes = 0.0
 else:
-    capacidad_gastos = fijo_neto * GASTOS_PCT
-    
-    if capacidad_gastos >= meta_inamovibles_total:
-        # 🔥 MODO ÓPTIMO (GATILLO ACTIVADO): Los sobres crecen, nada se congela
-        factor_crecimiento = capacidad_gastos / meta_inamovibles_total
-        f_renta = META_RENTA * factor_crecimiento
-        f_transp = META_TRANSPORTE * factor_crecimiento
-        f_novia = META_NOVIA * factor_crecimiento
-        f_viajes = META_VIAJES * factor_crecimiento
-        
-        f_deuda = fijo_neto * DEUDA_PCT
-        f_retiro = fijo_neto * INVERSION_PCT
-        f_ocio = fijo_neto * OCIO_PCT
-        f_ahorro_t = fijo_neto * AHORRO_PCT
-        f_emerg = f_ahorro_t * 0.50
-        f_colchon = f_ahorro_t * 0.50
+    # EL GATILLO: Si el 50% de tu dinero TOTAL supera los mínimos, entras en ABUNDANCIA
+    if (total_neto * 0.50) > meta_inamovibles_total:
+        factor = (total_neto * 0.50) / meta_inamovibles_total
+        t_meta_renta = META_RENTA * factor
+        t_meta_transp = META_TRANSPORTE * factor
+        t_meta_novia = META_NOVIA * factor
+        t_meta_viajes = META_VIAJES * factor
     else:
-        # 🛡️ MODO CASCADA (SUPERVIVENCIA): Aseguramos mínimos, remanente a crecimiento
-        f_aux = fijo_neto
-        f_renta = min(f_aux, META_RENTA); f_aux -= f_renta
-        f_transp = min(f_aux, META_TRANSPORTE); f_aux -= f_transp
-        f_novia = min(f_aux, META_NOVIA); f_aux -= f_novia
-        f_viajes = min(f_aux, META_VIAJES); f_aux -= f_viajes
-        
-        if f_aux > 0:
-            f_deuda = f_aux * (DEUDA_PCT / 0.50)
-            f_retiro = f_aux * (INVERSION_PCT / 0.50)
-            f_ocio = f_aux * (OCIO_PCT / 0.50)
-            f_ahorro_t = f_aux * (AHORRO_PCT / 0.50)
-            f_emerg = f_ahorro_t * 0.50
-            f_colchon = f_ahorro_t * 0.50
+        # SUPERVIVENCIA: Se quedan en lo mínimo necesario
+        t_meta_renta = META_RENTA
+        t_meta_transp = META_TRANSPORTE
+        t_meta_novia = META_NOVIA
+        t_meta_viajes = META_VIAJES
 
-# Rescate con Ingreso Variable
-v_aux = var_neto
-v_renta = min(v_aux, max(0.0, META_RENTA - f_renta)); v_aux -= v_renta
-v_transp = min(v_aux, max(0.0, META_TRANSPORTE - f_transp)); v_aux -= v_transp
-v_novia = min(v_aux, max(0.0, META_NOVIA - f_novia)); v_aux -= v_novia
-v_viajes = min(v_aux, max(0.0, META_VIAJES - f_viajes)); v_aux -= v_viajes
+# 2. Función para llenar un sobre priorizando el Fijo y luego el Variable
+def llenar_sobre(meta, disp_fijo, disp_var):
+    uso_fijo = min(meta, disp_fijo)
+    disp_fijo -= uso_fijo
+    
+    faltante = meta - uso_fijo
+    uso_var = min(faltante, disp_var)
+    disp_var -= uso_var
+    
+    return uso_fijo, uso_var, disp_fijo, disp_var
 
-if v_aux > 0 and not omitir_fijo:
-    v_deuda = v_aux * (DEUDA_PCT / 0.50)
-    v_retiro = v_aux * (INVERSION_PCT / 0.50)
-    v_ocio = v_aux * (OCIO_PCT / 0.50)
-    v_ahorro_t = v_aux * (AHORRO_PCT / 0.50)
-    v_emerg = v_ahorro_t * 0.50
-    v_colchon = v_ahorro_t * 0.50
+# 3. Llenamos los inamovibles en cascada
+f_restante = fijo_neto
+v_restante = var_neto
 
-deficit_total = max(0.0, meta_inamovibles_total - (f_renta + v_renta + f_transp + v_transp + f_novia + v_novia + f_viajes + v_viajes))
-retiro_total = f_retiro + v_retiro
-proyeccion = retiro_total * (((1 + (0.07 / 52))**(30 * 52)) - 1) / (0.07 / 52) if retiro_total > 0 else 0.0
+f_renta, v_renta, f_restante, v_restante = llenar_sobre(t_meta_renta, f_restante, v_restante)
+f_transp, v_transp, f_restante, v_restante = llenar_sobre(t_meta_transp, f_restante, v_restante)
+f_novia, v_novia, f_restante, v_restante = llenar_sobre(t_meta_novia, f_restante, v_restante)
+f_viajes, v_viajes, f_restante, v_restante = llenar_sobre(t_meta_viajes, f_restante, v_restante)
+
+# 4. Lo que sobre se va al bloque de Crecimiento con porcentajes puros
+f_deuda = f_restante * P_DEUDA; v_deuda = v_restante * P_DEUDA
+f_retiro = f_restante * P_RETIRO; v_retiro = v_restante * P_RETIRO
+f_ocio = f_restante * P_OCIO; v_ocio = v_restante * P_OCIO
+f_emerg = f_restante * P_EMERG; v_emerg = v_restante * P_EMERG
+f_colchon = f_restante * P_COLCHON; v_colchon = v_restante * P_COLCHON
 
 # ==========================================
-# TOTALES EXACTOS (VARIABLES FINALES)
+# TOTALES EXACTOS
 # ==========================================
 t_diezmo = diezmo_fijo + diezmo_var
 t_renta = f_renta + v_renta
@@ -146,16 +126,23 @@ t_colchon = f_colchon + v_colchon
 t_retiro = f_retiro + v_retiro
 t_ocio = f_ocio + v_ocio
 
+deficit_total = max(0.0, meta_inamovibles_total - (t_renta + t_transp + t_novia + t_viajes))
+proyeccion = t_retiro * (((1 + (0.07 / 52))**(30 * 52)) - 1) / (0.07 / 52) if t_retiro > 0 else 0.0
+
 # ==========================================
 # MÉTRICAS VISUALES SUPERIORES
 # ==========================================
 c1, c2, c3, c4 = st.columns(4)
-with c1: st.metric("NETO DISPONIBLE", f"${(fijo_disponible + var_neto):,.2f}")
+with c1: st.metric("NETO DISPONIBLE", f"${total_neto:,.2f}")
 with c2: st.metric("CRECIMIENTO/AHORRO", f"${(t_emerg + t_colchon + t_deuda + t_ocio):,.2f}")
 with c3: st.metric("PATRIMONIO PROYECTADO", f"${proyeccion:,.2f}")
 with c4:
-    if omitir_fijo or deficit_total <= 0.01:
-        st.metric("ESTADO INAMOVIBLES", "CUBIERTOS ✅" if (f_renta + v_renta) <= META_RENTA else "EXPANDIDOS 🔥")
+    if omitir_fijo:
+        st.metric("ESTADO INAMOVIBLES", "CUBIERTOS ✅")
+    elif (total_neto * 0.50) > meta_inamovibles_total:
+        st.metric("ESTADO INAMOVIBLES", "EXPANDIDOS 🔥")
+    elif deficit_total <= 0.01:
+        st.metric("ESTADO INAMOVIBLES", "AL RAS ⚖️")
     else:
         st.metric("DÉFICIT INAMOVIBLES", f"-${deficit_total:,.2f}")
 
@@ -167,15 +154,15 @@ st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("### 📊 DESGLOSE POR SOBRE")
 df_data = [
     {"Sobre": "⛪ Diezmo", "Meta": "10%", "Fijo": f"${diezmo_fijo:,.2f}", "Variable": f"${diezmo_var:,.2f}", "Total": f"${t_diezmo:,.2f}", "Estado": "⚪ OK"},
-    {"Sobre": "🏠 Renta", "Meta": f"${META_RENTA:,.2f}", "Fijo": f"${f_renta:,.2f}", "Variable": f"${v_renta:,.2f}", "Total": f"${t_renta:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_renta>=META_RENTA else f"🔴 -${META_RENTA-t_renta:,.2f}")},
-    {"Sobre": "🚗 Transporte", "Meta": f"${META_TRANSPORTE:,.2f}", "Fijo": f"${f_transp:,.2f}", "Variable": f"${v_transp:,.2f}", "Total": f"${t_transp:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_transp>=META_TRANSPORTE else f"🔴 -${META_TRANSPORTE-t_transp:,.2f}")},
-    {"Sobre": "💖 Novia", "Meta": f"${META_NOVIA:,.2f}", "Fijo": f"${f_novia:,.2f}", "Variable": f"${v_novia:,.2f}", "Total": f"${t_novia:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_novia>=META_NOVIA else f"🔴 -${META_NOVIA-t_novia:,.2f}")},
-    {"Sobre": "✈️ Viajes", "Meta": f"${META_VIAJES:,.2f}", "Fijo": f"${f_viajes:,.2f}", "Variable": f"${v_viajes:,.2f}", "Total": f"${t_viajes:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_viajes>=META_VIAJES else f"🔴 -${META_VIAJES-t_viajes:,.2f}")},
-    {"Sobre": "💳 Deuda (30%)", "Meta": "S/M", "Fijo": f"${f_deuda:,.2f}", "Variable": f"${v_deuda:,.2f}", "Total": f"${t_deuda:,.2f}", "Estado": "🔥 Acelerando"},
-    {"Sobre": "🚨 Emergencias (20%)", "Meta": "S/M", "Fijo": f"${f_emerg:,.2f}", "Variable": f"${v_emerg:,.2f}", "Total": f"${t_emerg:,.2f}", "Estado": "🛡️ OK"},
-    {"Sobre": "🛌 Colchón (20%)", "Meta": "S/M", "Fijo": f"${f_colchon:,.2f}", "Variable": f"${v_colchon:,.2f}", "Total": f"${t_colchon:,.2f}", "Estado": "🛡️ OK"},
-    {"Sobre": "📈 Retiro (20%)", "Meta": "S/M", "Fijo": f"${f_retiro:,.2f}", "Variable": f"${v_retiro:,.2f}", "Total": f"${t_retiro:,.2f}", "Estado": "🚀 S&P 500"},
-    {"Sobre": "🍿 Ocio (10%)", "Meta": "S/M", "Fijo": f"${f_ocio:,.2f}", "Variable": f"${v_ocio:,.2f}", "Total": f"${t_ocio:,.2f}", "Estado": "🎮 A disfrutar"}
+    {"Sobre": "🏠 Renta", "Meta": f"${t_meta_renta:,.2f}", "Fijo": f"${f_renta:,.2f}", "Variable": f"${v_renta:,.2f}", "Total": f"${t_renta:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_renta>=t_meta_renta else f"🔴 -${t_meta_renta-t_renta:,.2f}")},
+    {"Sobre": "🚗 Transporte", "Meta": f"${t_meta_transp:,.2f}", "Fijo": f"${f_transp:,.2f}", "Variable": f"${v_transp:,.2f}", "Total": f"${t_transp:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_transp>=t_meta_transp else f"🔴 -${t_meta_transp-t_transp:,.2f}")},
+    {"Sobre": "💖 Novia", "Meta": f"${t_meta_novia:,.2f}", "Fijo": f"${f_novia:,.2f}", "Variable": f"${v_novia:,.2f}", "Total": f"${t_novia:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_novia>=t_meta_novia else f"🔴 -${t_meta_novia-t_novia:,.2f}")},
+    {"Sobre": "✈️ Viajes", "Meta": f"${t_meta_viajes:,.2f}", "Fijo": f"${f_viajes:,.2f}", "Variable": f"${v_viajes:,.2f}", "Total": f"${t_viajes:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_viajes>=t_meta_viajes else f"🔴 -${t_meta_viajes-t_viajes:,.2f}")},
+    {"Sobre": "💳 Deuda (30%)", "Meta": "Crecimiento", "Fijo": f"${f_deuda:,.2f}", "Variable": f"${v_deuda:,.2f}", "Total": f"${t_deuda:,.2f}", "Estado": "🔥 Acelerando"},
+    {"Sobre": "🚨 Emergencias (20%)", "Meta": "Crecimiento", "Fijo": f"${f_emerg:,.2f}", "Variable": f"${v_emerg:,.2f}", "Total": f"${t_emerg:,.2f}", "Estado": "🛡️ OK"},
+    {"Sobre": "🛌 Colchón (20%)", "Meta": "Crecimiento", "Fijo": f"${f_colchon:,.2f}", "Variable": f"${v_colchon:,.2f}", "Total": f"${t_colchon:,.2f}", "Estado": "🛡️ OK"},
+    {"Sobre": "📈 Retiro (20%)", "Meta": "Crecimiento", "Fijo": f"${f_retiro:,.2f}", "Variable": f"${v_retiro:,.2f}", "Total": f"${t_retiro:,.2f}", "Estado": "🚀 S&P 500"},
+    {"Sobre": "🍿 Ocio (10%)", "Meta": "Crecimiento", "Fijo": f"${f_ocio:,.2f}", "Variable": f"${v_ocio:,.2f}", "Total": f"${t_ocio:,.2f}", "Estado": "🎮 A disfrutar"}
 ]
 st.dataframe(pd.DataFrame(df_data), use_container_width=True, hide_index=True)
 
