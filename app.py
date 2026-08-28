@@ -19,12 +19,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# CONSTANTES FINANCIERAS
+# CONSTANTES FINANCIERAS (Ajustado con 5% Ocio)
 # ==========================================
 DIEZMO_PCT = 0.10
 DEUDA_PCT = 0.30
 INVERSION_PCT = 0.20
-AHORRO_PCT = 0.50
+OCIO_PCT = 0.05
+AHORRO_PCT = 0.45  # (22.5% Emergencias + 22.5% Colchón)
 
 META_RENTA = 1000.0
 META_TRANSPORTE = 300.0
@@ -61,14 +62,15 @@ fijo_neto = fijo_disponible - diezmo_fijo
 diezmo_var = ingreso_var_bruto * DIEZMO_PCT
 var_neto = ingreso_var_bruto - diezmo_var
 
-f_renta = f_transp = f_novia = f_viajes = f_deuda = f_emerg = f_colchon = f_retiro = 0.0
-v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_retiro = 0.0
+f_renta = f_transp = f_novia = f_viajes = f_deuda = f_emerg = f_colchon = f_retiro = f_ocio = 0.0
+v_renta = v_transp = v_novia = v_viajes = v_deuda = v_emerg = v_colchon = v_retiro = v_ocio = 0.0
 
 if omitir_fijo:
     v_aux = var_neto
     if v_aux > 0:
         v_deuda = v_aux * DEUDA_PCT
         v_retiro = v_aux * INVERSION_PCT
+        v_ocio = v_aux * OCIO_PCT
         v_ahorro_t = v_aux * AHORRO_PCT
         v_emerg = v_ahorro_t * 0.50
         v_colchon = v_ahorro_t * 0.50
@@ -82,6 +84,7 @@ else:
     if f_aux > 0:
         f_deuda = f_aux * DEUDA_PCT
         f_retiro = f_aux * INVERSION_PCT
+        f_ocio = f_aux * OCIO_PCT
         f_ahorro_t = f_aux * AHORRO_PCT
         f_emerg = f_ahorro_t * 0.50
         f_colchon = f_ahorro_t * 0.50
@@ -95,6 +98,7 @@ v_viajes = min(v_aux, max(0.0, META_VIAJES - f_viajes)); v_aux -= v_viajes
 if v_aux > 0 and not omitir_fijo:
     v_deuda = v_aux * DEUDA_PCT
     v_retiro = v_aux * INVERSION_PCT
+    v_ocio = v_aux * OCIO_PCT
     v_ahorro_t = v_aux * AHORRO_PCT
     v_emerg = v_ahorro_t * 0.50
     v_colchon = v_ahorro_t * 0.50
@@ -104,11 +108,25 @@ retiro_total = f_retiro + v_retiro
 proyeccion = retiro_total * (((1 + (0.07 / 52))**(30 * 52)) - 1) / (0.07 / 52) if retiro_total > 0 else 0.0
 
 # ==========================================
+# TOTALES EXACTOS (VARIABLES FINALES)
+# ==========================================
+t_diezmo = diezmo_fijo + diezmo_var
+t_renta = f_renta + v_renta
+t_transp = f_transp + v_transp
+t_novia = f_novia + v_novia
+t_viajes = f_viajes + v_viajes
+t_deuda = f_deuda + v_deuda
+t_emerg = f_emerg + v_emerg
+t_colchon = f_colchon + v_colchon
+t_retiro = f_retiro + v_retiro
+t_ocio = f_ocio + v_ocio
+
+# ==========================================
 # MÉTRICAS VISUALES SUPERIORES
 # ==========================================
 c1, c2, c3, c4 = st.columns(4)
 with c1: st.metric("NETO DISPONIBLE", f"${(fijo_disponible + var_neto):,.2f}")
-with c2: st.metric("CRECIMIENTO (Ahorro+Deuda)", f"${(f_emerg + v_emerg + f_colchon + v_colchon + f_deuda + v_deuda):,.2f}")
+with c2: st.metric("CRECIMIENTO/AHORRO", f"${(t_emerg + t_colchon + t_deuda + t_ocio):,.2f}")
 with c3: st.metric("PATRIMONIO PROYECTADO", f"${proyeccion:,.2f}")
 with c4:
     if omitir_fijo or deficit_total <= 0.01:
@@ -123,15 +141,16 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ==========================================
 st.markdown("### 📊 DESGLOSE POR SOBRE")
 df_data = [
-    {"Sobre": "⛪ Diezmo", "Meta": "10%", "Fijo": f"${diezmo_fijo:,.2f}", "Variable": f"${diezmo_var:,.2f}", "Total": f"${(diezmo_fijo+diezmo_var):,.2f}", "Estado": "⚪ OK"},
-    {"Sobre": "🏠 Renta", "Meta": f"${META_RENTA:,.2f}", "Fijo": f"${f_renta:,.2f}", "Variable": f"${v_renta:,.2f}", "Total": f"${(f_renta+v_renta):,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if (f_renta+v_renta)>=META_RENTA else f"🔴 -${META_RENTA-(f_renta+v_renta):,.2f}")},
-    {"Sobre": "🚗 Transporte", "Meta": f"${META_TRANSPORTE:,.2f}", "Fijo": f"${f_transp:,.2f}", "Variable": f"${v_transp:,.2f}", "Total": f"${(f_transp+v_transp):,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if (f_transp+v_transp)>=META_TRANSPORTE else f"🔴 -${META_TRANSPORTE-(f_transp+v_transp):,.2f}")},
-    {"Sobre": "💖 Novia", "Meta": f"${META_NOVIA:,.2f}", "Fijo": f"${f_novia:,.2f}", "Variable": f"${v_novia:,.2f}", "Total": f"${(f_novia+v_novia):,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if (f_novia+v_novia)>=META_NOVIA else f"🔴 -${META_NOVIA-(f_novia+v_novia):,.2f}")},
-    {"Sobre": "✈️ Viajes", "Meta": f"${META_VIAJES:,.2f}", "Fijo": f"${f_viajes:,.2f}", "Variable": f"${v_viajes:,.2f}", "Total": f"${(f_viajes+v_viajes):,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if (f_viajes+v_viajes)>=META_VIAJES else f"🔴 -${META_VIAJES-(f_viajes+v_viajes):,.2f}")},
-    {"Sobre": "💳 Deuda (30%)", "Meta": "S/M", "Fijo": f"${f_deuda:,.2f}", "Variable": f"${v_deuda:,.2f}", "Total": f"${(f_deuda+v_deuda):,.2f}", "Estado": "🔥 Acelerando"},
-    {"Sobre": "🚨 Emergencias (25%)", "Meta": "S/M", "Fijo": f"${f_emerg:,.2f}", "Variable": f"${v_emerg:,.2f}", "Total": f"${(f_emerg+v_emerg):,.2f}", "Estado": "🛡️ OK"},
-    {"Sobre": "🛌 Colchón (25%)", "Meta": "S/M", "Fijo": f"${f_colchon:,.2f}", "Variable": f"${v_colchon:,.2f}", "Total": f"${(f_colchon+v_colchon):,.2f}", "Estado": "🛡️ OK"},
-    {"Sobre": "📈 Retiro (20%)", "Meta": "S/M", "Fijo": f"${f_retiro:,.2f}", "Variable": f"${v_retiro:,.2f}", "Total": f"${(f_retiro+v_retiro):,.2f}", "Estado": "🚀 S&P 500"}
+    {"Sobre": "⛪ Diezmo", "Meta": "10%", "Fijo": f"${diezmo_fijo:,.2f}", "Variable": f"${diezmo_var:,.2f}", "Total": f"${t_diezmo:,.2f}", "Estado": "⚪ OK"},
+    {"Sobre": "🏠 Renta", "Meta": f"${META_RENTA:,.2f}", "Fijo": f"${f_renta:,.2f}", "Variable": f"${v_renta:,.2f}", "Total": f"${t_renta:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_renta>=META_RENTA else f"🔴 -${META_RENTA-t_renta:,.2f}")},
+    {"Sobre": "🚗 Transporte", "Meta": f"${META_TRANSPORTE:,.2f}", "Fijo": f"${f_transp:,.2f}", "Variable": f"${v_transp:,.2f}", "Total": f"${t_transp:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_transp>=META_TRANSPORTE else f"🔴 -${META_TRANSPORTE-t_transp:,.2f}")},
+    {"Sobre": "💖 Novia", "Meta": f"${META_NOVIA:,.2f}", "Fijo": f"${f_novia:,.2f}", "Variable": f"${v_novia:,.2f}", "Total": f"${t_novia:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_novia>=META_NOVIA else f"🔴 -${META_NOVIA-t_novia:,.2f}")},
+    {"Sobre": "✈️ Viajes", "Meta": f"${META_VIAJES:,.2f}", "Fijo": f"${f_viajes:,.2f}", "Variable": f"${v_viajes:,.2f}", "Total": f"${t_viajes:,.2f}", "Estado": "🔵 Listo" if omitir_fijo else (f"🟢 OK" if t_viajes>=META_VIAJES else f"🔴 -${META_VIAJES-t_viajes:,.2f}")},
+    {"Sobre": "💳 Deuda (30%)", "Meta": "S/M", "Fijo": f"${f_deuda:,.2f}", "Variable": f"${v_deuda:,.2f}", "Total": f"${t_deuda:,.2f}", "Estado": "🔥 Acelerando"},
+    {"Sobre": "🚨 Emergencias (22.5%)", "Meta": "S/M", "Fijo": f"${f_emerg:,.2f}", "Variable": f"${v_emerg:,.2f}", "Total": f"${t_emerg:,.2f}", "Estado": "🛡️ OK"},
+    {"Sobre": "🛌 Colchón (22.5%)", "Meta": "S/M", "Fijo": f"${f_colchon:,.2f}", "Variable": f"${v_colchon:,.2f}", "Total": f"${t_colchon:,.2f}", "Estado": "🛡️ OK"},
+    {"Sobre": "📈 Retiro (20%)", "Meta": "S/M", "Fijo": f"${f_retiro:,.2f}", "Variable": f"${v_retiro:,.2f}", "Total": f"${t_retiro:,.2f}", "Estado": "🚀 S&P 500"},
+    {"Sobre": "🍿 Ocio (5%)", "Meta": "S/M", "Fijo": f"${f_ocio:,.2f}", "Variable": f"${v_ocio:,.2f}", "Total": f"${t_ocio:,.2f}", "Estado": "🎮 A disfrutar"}
 ]
 st.dataframe(pd.DataFrame(df_data), use_container_width=True, hide_index=True)
 
@@ -142,17 +161,17 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ==========================================
 st.markdown("### 🏦 GUÍA DE DEPÓSITOS (¿A dónde mando el dinero?)")
 
-# Nota: Puedes editar los textos de 'Institución' y 'Cuenta' directamente aquí abajo
 df_bancos = [
-    {"Sobre": "⛪ Diezmo", "Monto a Transferir": f"${(diezmo_fijo+diezmo_var):,.2f}", "Institución / Banco": "Efectivo / Sobre físico", "Cuenta / Referencia": "Entrega Personal"},
-    {"Sobre": "🏠 Renta", "Monto a Transferir": f"${(f_renta+v_renta):,.2f}", "Institución / Banco": "BBVA (Ejemplo Arrendador)", "Cuenta / Referencia": "012 345 6789 0123456 7"},
-    {"Sobre": "🚗 Transporte", "Monto a Transferir": f"${(f_transp+v_transp):,.2f}", "Institución / Banco": "Tarjeta de Débito Uso Diario", "Cuenta / Referencia": "Dejar en cuenta principal"},
-    {"Sobre": "💖 Novia", "Monto a Transferir": f"${(f_novia+v_novia):,.2f}", "Institución / Banco": "Hey Banco (Apartado)", "Cuenta / Referencia": "Fondo interno"},
-    {"Sobre": "✈️ Viajes", "Monto a Transferir": f"${(f_viajes+v_viajes):,.2f}", "Institución / Banco": "Nu (Cajita Viajes)", "Cuenta / Referencia": "Fondo interno al 14%"},
-    {"Sobre": "💳 Deuda", "Monto a Transferir": f"${(f_deuda+v_deuda):,.2f}", "Institución / Banco": "Tarjeta de Crédito a Pagar", "Cuenta / Referencia": "16 dígitos de tu tarjeta"},
-    {"Sobre": "🚨 Emergencias", "Monto a Transferir": f"${(f_emerg+v_emerg):,.2f}", "Institución / Banco": "Mercado Pago / Ualá", "Cuenta / Referencia": "Cuenta con liquidez 24/7"},
-    {"Sobre": "🛌 Colchón", "Monto a Transferir": f"${(f_colchon+v_colchon):,.2f}", "Institución / Banco": "Nu (Cajita Ahorro)", "Cuenta / Referencia": "Fondo interno"},
-    {"Sobre": "📈 Retiro", "Monto a Transferir": f"${(f_retiro+v_retiro):,.2f}", "Institución / Banco": "GBM+ / Cetes Directo", "Cuenta / Referencia": "Comprar VOO o Cetes"}
+    {"Sobre": "⛪ Diezmo", "Monto": f"${t_diezmo:,.2f}", "Institución": "Revolut", "CLABE / Cuenta": "% %"},
+    {"Sobre": "🏠 Renta", "Monto": f"${t_renta:,.2f}", "Institución": "Nu", "CLABE / Cuenta": "638180000126660124"},
+    {"Sobre": "🚗 Transporte", "Monto": f"${t_transp:,.2f}", "Institución": "Nu", "CLABE / Cuenta": "638180000126660124"},
+    {"Sobre": "🚨 Emergencias", "Monto": f"${t_emerg:,.2f}", "Institución": "Nu", "CLABE / Cuenta": "638180000126660124"},
+    {"Sobre": "🛌 Colchón", "Monto": f"${t_colchon:,.2f}", "Institución": "Nu", "CLABE / Cuenta": "638180000126660124"},
+    {"Sobre": "📈 Retiro", "Monto": f"${t_retiro:,.2f}", "Institución": "GBM", "CLABE / Cuenta": "% %"},
+    {"Sobre": "💳 Deuda", "Monto": f"${t_deuda:,.2f}", "Institución": "Otra Cuenta", "CLABE / Cuenta": "% %"},
+    {"Sobre": "✈️ Viajes", "Monto": f"${t_viajes:,.2f}", "Institución": "Otra Cuenta", "CLABE / Cuenta": "% %"},
+    {"Sobre": "💖 Novia", "Monto": f"${t_novia:,.2f}", "Institución": "Apartado Libre", "CLABE / Cuenta": "% %"},
+    {"Sobre": "🍿 Ocio", "Monto": f"${t_ocio:,.2f}", "Institución": "Cuenta Uso Diario", "CLABE / Cuenta": "% %"}
 ]
 st.dataframe(pd.DataFrame(df_bancos), use_container_width=True, hide_index=True)
 
