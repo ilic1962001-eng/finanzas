@@ -23,7 +23,7 @@ st.markdown("""
 # ==========================================
 DIEZMO_PCT = 0.10
 
-# Proporciones de Crecimiento (Suman 100% del bloque restante)
+# Proporciones de Crecimiento (Suman 100% del remanente)
 P_DEUDA = 0.30
 P_RETIRO = 0.20
 P_OCIO = 0.10
@@ -59,19 +59,20 @@ st.markdown("---")
 # NUEVO CEREBRO MATEMÁTICO (FONDO UNIFICADO)
 # ==========================================
 fijo_disponible = max(0.0, ingreso_fijo_bruto - deducciones)
+total_ingreso_real = fijo_disponible + ingreso_var_bruto # El dinero real en tu bolsa antes de diezmo
 
 diezmo_fijo = fijo_disponible * DIEZMO_PCT if not omitir_fijo else 0.0
 fijo_neto = fijo_disponible - diezmo_fijo
 diezmo_var = ingreso_var_bruto * DIEZMO_PCT
 var_neto = ingreso_var_bruto - diezmo_var
 
-total_neto = fijo_neto + var_neto
+total_neto = fijo_neto + var_neto # El dinero a repartir en sobres
 
 # 1. Definir los "Targets" (Metas) de esta semana evaluando el total
 if omitir_fijo:
     t_meta_renta = t_meta_transp = t_meta_novia = t_meta_viajes = 0.0
 else:
-    # EL GATILLO: Si el 50% de tu dinero TOTAL supera los mínimos, entras en ABUNDANCIA
+    # EL GATILLO: Si el 50% de tu dinero a repartir supera los mínimos, entras en ABUNDANCIA
     if (total_neto * 0.50) > meta_inamovibles_total:
         factor = (total_neto * 0.50) / meta_inamovibles_total
         t_meta_renta = META_RENTA * factor
@@ -133,9 +134,13 @@ proyeccion = t_retiro * (((1 + (0.07 / 52))**(30 * 52)) - 1) / (0.07 / 52) if t_
 # MÉTRICAS VISUALES SUPERIORES
 # ==========================================
 c1, c2, c3, c4 = st.columns(4)
-with c1: st.metric("NETO DISPONIBLE", f"${total_neto:,.2f}")
-with c2: st.metric("CRECIMIENTO/AHORRO", f"${(t_emerg + t_colchon + t_deuda + t_ocio):,.2f}")
-with c3: st.metric("PATRIMONIO PROYECTADO", f"${proyeccion:,.2f}")
+with c1: 
+    # Corregido: Muestra el dinero real que entra a tus manos
+    st.metric("NETO DISPONIBLE", f"${total_ingreso_real:,.2f}")
+with c2: 
+    st.metric("CRECIMIENTO/AHORRO", f"${(t_emerg + t_colchon + t_deuda + t_ocio):,.2f}")
+with c3: 
+    st.metric("PATRIMONIO PROYECTADO", f"${proyeccion:,.2f}")
 with c4:
     if omitir_fijo:
         st.metric("ESTADO INAMOVIBLES", "CUBIERTOS ✅")
@@ -173,13 +178,12 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ==========================================
 st.markdown("### 🏦 GUÍA DE DEPÓSITOS (¿A dónde mando el dinero?)")
 
-# Variable consolidada para Nu
 t_nu_total = t_renta + t_transp + t_emerg + t_colchon
 
 df_bancos = [
     {"Destino": "⛪ Diezmo", "Monto a Transferir": f"${t_diezmo:,.2f}", "Institución": "Revolut", "CLABE / Cuenta": "% %"},
     {"Destino": "🟣 Consolidado Nu (Renta, Transp, Emerg, Colchón)", "Monto a Transferir": f"${t_nu_total:,.2f}", "Institución": "Nu", "CLABE / Cuenta": "638180000126660124"},
-    {"Destino": "📈 Retiro", "Monto a Transferir": f"${t_retiro:,.2f}", "Institución": "GBM", "CLABE / Cuenta": "% %"},
+    {"Destino": "📈 Retiro", "Monto a Transferir": f"${t_retiro:,.2f}", "Institución": "GBM", "CLABE / Cuenta": "601180400073884389"},
     {"Destino": "💳 Deuda", "Monto a Transferir": f"${t_deuda:,.2f}", "Institución": "Otra Cuenta", "CLABE / Cuenta": "% %"},
     {"Destino": "✈️ Viajes", "Monto a Transferir": f"${t_viajes:,.2f}", "Institución": "Otra Cuenta", "CLABE / Cuenta": "% %"},
     {"Destino": "💖 Novia", "Monto a Transferir": f"${t_novia:,.2f}", "Institución": "Apartado Libre", "CLABE / Cuenta": "% %"},
