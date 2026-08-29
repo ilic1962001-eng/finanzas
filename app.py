@@ -274,19 +274,20 @@ st.markdown("<h3 style='color: #667eea;'>🏦 ¿A dónde transfiero, bb?</h3>", 
 
 st.markdown("<div style='text-align: center; margin-bottom: 25px;'><a href='https://banco.hey.inc/' target='_blank' class='link-banco'>🚀 Abrir Hey Banco (Tu Central)</a></div>", unsafe_allow_html=True)
 
-t_nu_operativo = t_renta + t_transp
+# Ajuste: Viajes se va a Nu, Spin queda en ceros (Opcional)
+t_nu_operativo = t_renta + t_transp + t_viajes
 t_revolut_rendimiento = t_diezmo + t_emerg + t_colchon
 t_santander = t_deuda + t_ocio
-t_spin = t_viajes
+t_spin = 0.0 # Spin queda libre para uso opcional
 t_hey = t_novia
 
 destinos = [
     {"Nombre": "⚫ Revolut (Diezmo, Emergencias, Colchón)", "Monto": t_revolut_rendimiento, "CLABE": "646990404064534378", "Link": "https://app.revolut.com/"},
-    {"Nombre": "🟣 Nu (Renta, Transporte)", "Monto": t_nu_operativo, "CLABE": "638180000126660124", "Link": "https://app.nu.com.mx/"},
+    {"Nombre": "🟣 Nu (Renta, Transporte, Viajes)", "Monto": t_nu_operativo, "CLABE": "638180000126660124", "Link": "https://app.nu.com.mx/"},
     {"Nombre": "📈 GBM (Retiro S&P 500)", "Monto": t_retiro, "CLABE": "601180400073884389", "Link": "https://app.gbm.com/"},
     {"Nombre": "🔴 Santander LikeU (Deuda, Ocio)", "Monto": t_santander, "CLABE": "014180140158246414", "Link": "https://www.santander.com.mx/"},
-    {"Nombre": "🏪 Spin by Oxxo (Viajes)", "Monto": t_spin, "CLABE": "728969000033664690", "Link": "https://spinbyoxxo.com.mx/"},
-    {"Nombre": "🔵 Hey Banco (Novia)", "Monto": t_hey, "CLABE": "APARTADO INTERNO", "Link": "https://banco.hey.inc/"}
+    {"Nombre": "🔵 Hey Banco (Novia)", "Monto": t_hey, "CLABE": "APARTADO INTERNO", "Link": "https://banco.hey.inc/"},
+    {"Nombre": "🏪 Spin by Oxxo (Opcional / Vacía)", "Monto": t_spin, "CLABE": "728969000033664690", "Link": "https://spinbyoxxo.com.mx/"}
 ]
 
 for d in destinos:
@@ -319,7 +320,7 @@ if st.session_state.exito_trigger:
     st.balloons()
     st.toast('¡Transferencias completadas, gran trabajo esta semana! 🎉', icon='✨')
     
-    # Este es exactamente el código HTML de audio que funcionaba en tu primera versión
+    # Restablecido al método original de audio que no usa iframes ni JS
     sonido_html = """
         <audio autoplay>
             <source src="https://actions.google.com/sounds/v1/foley/cash_register_kaching.ogg" type="audio/ogg">
