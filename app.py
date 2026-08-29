@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import streamlit.components.v1 as components
 
 # ==========================================
 # INICIALIZACIÓN DE MEMORIA
@@ -100,20 +99,16 @@ st.markdown("""
         color: #ffffff;
     }
     
-    .link-banco {
+    .etiqueta-app {
         display: inline-block;
         padding: 8px 15px;
         background-color: #f1f3f5;
-        color: #764ba2 !important;
+        color: #764ba2;
         border-radius: 8px;
-        text-decoration: none;
         font-weight: 600;
         font-size: 0.95rem;
-        transition: background 0.3s;
-    }
-    .link-banco:hover {
-        background-color: #764ba2;
-        color: #ffffff !important;
+        user-select: none;
+        border: 1px solid #e9ecef;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -272,9 +267,8 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ==========================================
 st.markdown("<h3 style='color: #667eea;'>🏦 ¿A dónde transfiero, bb?</h3>", unsafe_allow_html=True)
 
-st.markdown("<div style='text-align: center; margin-bottom: 25px;'><a href='https://banco.hey.inc/' target='_blank' class='link-banco'>🚀 Abrir Hey Banco (Tu Central)</a></div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; margin-bottom: 25px;'><span class='etiqueta-app'>🚀 Comienza desde la app de Hey Banco (Tu Central)</span></div>", unsafe_allow_html=True)
 
-# Ajuste: Viajes se va a Nu, Spin queda en ceros (Opcional)
 t_nu_operativo = t_renta + t_transp + t_viajes
 t_revolut_rendimiento = t_diezmo + t_emerg + t_colchon
 t_santander = t_deuda + t_ocio
@@ -282,12 +276,12 @@ t_spin = 0.0 # Spin queda libre para uso opcional
 t_hey = t_novia
 
 destinos = [
-    {"Nombre": "⚫ Revolut (Diezmo, Emergencias, Colchón)", "Monto": t_revolut_rendimiento, "CLABE": "646990404064534378", "Link": "https://app.revolut.com/"},
-    {"Nombre": "🟣 Nu (Renta, Transporte, Viajes)", "Monto": t_nu_operativo, "CLABE": "638180000126660124", "Link": "https://app.nu.com.mx/"},
-    {"Nombre": "📈 GBM (Retiro S&P 500)", "Monto": t_retiro, "CLABE": "601180400073884389", "Link": "https://app.gbm.com/"},
-    {"Nombre": "🔴 Santander LikeU (Deuda, Ocio)", "Monto": t_santander, "CLABE": "014180140158246414", "Link": "https://www.santander.com.mx/"},
-    {"Nombre": "🔵 Hey Banco (Novia)", "Monto": t_hey, "CLABE": "APARTADO INTERNO", "Link": "https://banco.hey.inc/"},
-    {"Nombre": "🏪 Spin by Oxxo (Opcional / Vacía)", "Monto": t_spin, "CLABE": "728969000033664690", "Link": "https://spinbyoxxo.com.mx/"}
+    {"Nombre": "⚫ Revolut (Diezmo, Emergencias, Colchón)", "Monto": t_revolut_rendimiento, "CLABE": "646990404064534378"},
+    {"Nombre": "🟣 Nu (Renta, Transporte, Viajes)", "Monto": t_nu_operativo, "CLABE": "638180000126660124"},
+    {"Nombre": "📈 GBM (Retiro S&P 500)", "Monto": t_retiro, "CLABE": "601180400073884389"},
+    {"Nombre": "🔴 Santander LikeU (Deuda, Ocio)", "Monto": t_santander, "CLABE": "014180140158246414"},
+    {"Nombre": "🔵 Hey Banco (Novia)", "Monto": t_hey, "CLABE": "APARTADO INTERNO"},
+    {"Nombre": "🏪 Spin by Oxxo (Opcional / Vacía)", "Monto": t_spin, "CLABE": "728969000033664690"}
 ]
 
 for d in destinos:
@@ -302,14 +296,14 @@ for d in destinos:
             else:
                 st.markdown("<div style='margin-top: 10px; color: #888888; font-style: italic;'>Sin CLABE (Traspaso interno)</div>", unsafe_allow_html=True)
                 
-        col4.markdown(f"<div style='margin-top: 10px;'><a href='{d['Link']}' target='_blank' class='link-banco'>Abrir App</a></div>", unsafe_allow_html=True)
+        col4.markdown("<div style='margin-top: 10px;'><span class='etiqueta-app'>📱 Usa tu App</span></div>", unsafe_allow_html=True)
         
     st.markdown("<hr style='margin: 0.5em 0; border: 0.5px solid #e9ecef;'>", unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==========================================
-# BOTÓN DE ACCIÓN Y SONIDO ORIGINAL
+# BOTÓN DE ACCIÓN Y SONIDO (CORREGIDO PARA DOM PRINCIPAL)
 # ==========================================
 col_espacio1, col_boton, col_espacio2 = st.columns([1, 2, 1])
 
@@ -320,12 +314,14 @@ if st.session_state.exito_trigger:
     st.balloons()
     st.toast('¡Transferencias completadas, gran trabajo esta semana! 🎉', icon='✨')
     
-    # Restablecido al método original de audio que no usa iframes ni JS
-    sonido_html = """
+    # Inyección directa de HTML al DOM principal (evita el bloqueo de iframes de Streamlit Components)
+    st.markdown(
+        """
         <audio autoplay>
             <source src="https://actions.google.com/sounds/v1/foley/cash_register_kaching.ogg" type="audio/ogg">
         </audio>
-    """
-    st.components.v1.html(sonido_html, width=0, height=0)
+        """, 
+        unsafe_allow_html=True
+    )
     
     st.session_state.exito_trigger = False
