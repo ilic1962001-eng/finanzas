@@ -15,110 +15,94 @@ if 'exito_trigger' not in st.session_state:
     st.session_state.exito_trigger = False
 
 def confirmar_deposito():
-    # Activa la animación y resetea los inputs
     st.session_state.exito_trigger = True
     st.session_state.fijo_val = 0.0
     st.session_state.deduc_val = 0.0
     st.session_state.var_val = 0.0
 
 # ==========================================
-# CONFIGURACIÓN DE PÁGINA Y ESTILOS "FINTECH PREMIUM"
+# CONFIGURACIÓN DE PÁGINA Y ESTILO "AESTHETIC"
 # ==========================================
-st.set_page_config(page_title="Flujo de Capital | Sistema O.S.", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Mi vida con Mirsa 💖", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
     <style>
-    /* Ocultar elementos de Streamlit para modo "App Nativa" */
+    /* Ocultar elementos de Streamlit */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* Fondo General Tecnológico */
+    /* Fondo General Pastel/Aesthetic */
     .stApp {
-        background: radial-gradient(circle at 50% 0%, #161b22 0%, #0d1117 100%);
-        color: #c9d1d9;
+        background-color: #fffafb; /* Blanco con un micro toque rosado */
+        color: #5a4a4e; /* Gris cálido para el texto */
+        font-family: 'Nunito', 'Segoe UI', sans-serif;
     }
 
-    /* Títulos Efecto Neón/Cyber */
+    /* Títulos Hermosos */
     .titulo-pro {
-        background: linear-gradient(to right, #00f2fe, #4facfe);
+        background: linear-gradient(to right, #ff758c 0%, #ff7eb3 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        font-size: 2.8rem;
+        font-size: 3rem;
         font-weight: 900;
         text-align: center;
-        text-transform: uppercase;
-        letter-spacing: 5px;
         margin-bottom: 0px;
-        padding-top: 20px;
+        padding-top: 10px;
     }
     
     .subtitulo {
         text-align: center;
-        color: #8b949e;
-        font-size: 1.1rem;
-        font-weight: 300;
-        letter-spacing: 3px;
-        margin-bottom: 40px;
-        text-transform: uppercase;
+        color: #ff9a9e;
+        font-size: 1.3rem;
+        font-weight: 600;
+        letter-spacing: 2px;
+        margin-bottom: 30px;
     }
 
-    /* Efecto Glassmorphism para las Tarjetas de Métricas */
+    /* Tarjetas de Métricas - Estilo Nube/Glass */
     div[data-testid="metric-container"] {
-        background: rgba(33, 38, 45, 0.4);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background-color: #ffffff;
         padding: 20px 25px;
-        border-radius: 16px;
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
-        border-top: 2px solid #4facfe;
-        transition: transform 0.3s ease, box-shadow 0.3s ease, border-top 0.3s ease;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(255, 117, 140, 0.1);
+        border: 1px solid #ffe1e6;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     div[data-testid="metric-container"]:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 40px rgba(0, 242, 254, 0.2);
-        border-top: 2px solid #00f2fe;
+        transform: translateY(-3px);
+        box-shadow: 0 15px 30px rgba(255, 117, 140, 0.2);
     }
     div[data-testid="metric-container"] label {
-        color: #8b949e !important;
-        font-weight: 600 !important;
-        font-size: 0.85rem !important;
-        letter-spacing: 1.5px;
+        color: #a49396 !important;
+        font-weight: 700 !important;
+        font-size: 0.9rem !important;
         text-transform: uppercase;
+        letter-spacing: 1px;
     }
     div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
-        color: #ffffff !important;
+        color: #ff758c !important;
         font-size: 2.2rem !important;
-        font-weight: 700 !important;
-        font-family: 'Courier New', Courier, monospace; /* Fuente estilo Terminal/Trading */
+        font-weight: 800 !important;
     }
 
-    /* Botón Tecnológico Principal */
+    /* Botón Romántico y Llamativo */
     .stButton > button {
         width: 100%;
-        background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-        color: #000000;
-        font-weight: 900;
-        font-size: 1.1rem;
-        letter-spacing: 2px;
-        padding: 18px 0;
+        background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+        color: #d81b60;
+        font-weight: 800;
+        font-size: 1.3rem;
+        padding: 15px 0;
         border: none;
-        border-radius: 12px;
-        box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
-        text-transform: uppercase;
+        border-radius: 25px;
+        box-shadow: 0 8px 15px rgba(255, 154, 158, 0.3);
         transition: all 0.3s ease;
     }
     .stButton > button:hover {
-        transform: scale(1.02);
-        box-shadow: 0 0 25px rgba(0, 242, 254, 0.6);
-        color: #ffffff;
-    }
-    
-    /* Pequeños ajustes a los Dataframes para que se vean integrados */
-    [data-testid="stDataFrame"] {
-        border-radius: 10px;
-        overflow: hidden;
+        transform: scale(1.02) translateY(-2px);
+        box-shadow: 0 12px 20px rgba(255, 154, 158, 0.5);
+        color: #c2185b;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -127,9 +111,8 @@ st.markdown("""
 # CONSTANTES FINANCIERAS
 # ==========================================
 DIEZMO_PCT = 0.10
-OCIO_VAR_PCT = 0.10  # 10% DIRECTO del Ingreso Variable para disfrutar
+OCIO_VAR_PCT = 0.10  
 
-# Proporciones de Crecimiento del resto del dinero
 P_DEUDA = 0.30
 P_RETIRO = 0.20
 P_EMERG = 0.25
@@ -144,25 +127,25 @@ meta_inamovibles_total = META_RENTA + META_TRANSPORTE + META_NOVIA + META_VIAJES
 # ==========================================
 # HEADER E INPUTS
 # ==========================================
-st.markdown("<div class='titulo-pro'>⚡ CAPITAL FLOW O.S.</div>", unsafe_allow_html=True)
-st.markdown("<div class='subtitulo'>Motor de Distribución Algorítmica</div>", unsafe_allow_html=True)
+st.markdown("<div class='titulo-pro'>¿Cuánto ganaste bb?</div>", unsafe_allow_html=True)
+st.markdown("<div class='subtitulo'>Mi vida con Mirsa ✨</div>", unsafe_allow_html=True)
 
 with st.container():
     c_in1, c_in2, c_in3 = st.columns(3)
     with c_in1:
-        ingreso_fijo_bruto = st.number_input("💵 INGRESO FIJO NETO ($)", min_value=0.0, step=100.0, key="fijo_val")
+        ingreso_fijo_bruto = st.number_input("💵 Tu Sueldo Fijo ($)", min_value=0.0, step=100.0, key="fijo_val")
     with c_in2:
-        deducciones = st.number_input("✂️ DEDUCCIONES EXACTAS ($)", min_value=0.0, step=10.0, key="deduc_val")
+        deducciones = st.number_input("✂️ ¿Te quitaron algo? ($)", min_value=0.0, step=10.0, key="deduc_val")
     with c_in3:
-        ingreso_var_bruto = st.number_input("📈 INGRESO VARIABLE NETO ($)", min_value=0.0, step=100.0, key="var_val")
+        ingreso_var_bruto = st.number_input("📈 Tus Extras (Variable) ($)", min_value=0.0, step=100.0, key="var_val")
 
     st.markdown("<br>", unsafe_allow_html=True)
-    omitir_fijo = st.checkbox("🔐 OMITIR INGRESO FIJO (Mínimos ya cubiertos)", value=False)
+    omitir_fijo = st.checkbox("💖 Ya pagué los gastos fijos esta semana (Omitir Fijo)", value=False)
 
 st.markdown("---")
 
 # ==========================================
-# CEREBRO MATEMÁTICO (FONDO UNIFICADO)
+# CEREBRO MATEMÁTICO 
 # ==========================================
 fijo_disponible = max(0.0, ingreso_fijo_bruto - deducciones)
 total_ingreso_real = fijo_disponible + ingreso_var_bruto 
@@ -172,10 +155,9 @@ fijo_neto = fijo_disponible - diezmo_fijo
 diezmo_var = ingreso_var_bruto * DIEZMO_PCT
 var_neto_inicial = ingreso_var_bruto - diezmo_var
 
-# 🔥 PREMIO DIRECTO: El Ocio toma el 10% del variable libre inmediatamente
 v_ocio = var_neto_inicial * OCIO_VAR_PCT
-f_ocio = 0.0  # Ya no toma del fijo
-var_neto = var_neto_inicial - v_ocio  # Lo que queda del variable pasa a la cascada
+f_ocio = 0.0  
+var_neto = var_neto_inicial - v_ocio  
 
 total_neto_para_repartir = fijo_neto + var_neto 
 
@@ -197,11 +179,9 @@ else:
 def llenar_sobre(meta, disp_fijo, disp_var):
     uso_fijo = min(meta, disp_fijo)
     disp_fijo -= uso_fijo
-    
     faltante = meta - uso_fijo
     uso_var = min(faltante, disp_var)
     disp_var -= uso_var
-    
     return uso_fijo, uso_var, disp_fijo, disp_var
 
 f_restante = fijo_neto
@@ -239,86 +219,81 @@ proyeccion = t_retiro * (((1 + (0.07 / 52))**(30 * 52)) - 1) / (0.07 / 52) if t_
 # ==========================================
 c1, c2, c3, c4 = st.columns(4)
 with c1: 
-    st.metric("LIQUIDEZ NETA TOTAL", f"${total_ingreso_real:,.2f}")
+    st.metric("💰 Dinero en Mano", f"${total_ingreso_real:,.2f}")
 with c2: 
-    st.metric("CRECIMIENTO/AHORRO", f"${(t_emerg + t_colchon + t_deuda + t_ocio):,.2f}")
+    st.metric("🌱 Para Nuestro Futuro", f"${(t_emerg + t_colchon + t_deuda + t_ocio):,.2f}")
 with c3: 
-    st.metric("PATRIMONIO (30 AÑOS)", f"${proyeccion:,.2f}")
+    st.metric("🏰 Proyección (30 Años)", f"${proyeccion:,.2f}")
 with c4:
     if omitir_fijo:
-        st.metric("ESTATUS SISTEMA", "MÍNIMOS 100% ✅")
+        st.metric("✨ Fijos de la Semana", "CUBIERTOS 💖")
     elif (total_neto_para_repartir * 0.50) > meta_inamovibles_total:
-        st.metric("ESTATUS SISTEMA", "ABUNDANCIA ACTIVA 🔥")
+        st.metric("✨ Fijos de la Semana", "¡SÚPER BIEN! 🔥")
     elif deficit_total <= 0.01:
-        st.metric("ESTATUS SISTEMA", "EQUILIBRIO ⚖️")
+        st.metric("✨ Fijos de la Semana", "APENITAS 😅")
     else:
-        st.metric("ALERTA DÉFICIT", f"-${deficit_total:,.2f}")
+        st.metric("🥺 Nos Falta", f"-${deficit_total:,.2f}")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==========================================
-# 1. TABLA ORIGINAL DE DESGLOSE (MATEMÁTICA)
+# 1. TABLA ORIGINAL DE DESGLOSE
 # ==========================================
-st.markdown("### 📊 MATRIZ DE DISTRIBUCIÓN")
+st.markdown("<h3 style='color: #ff758c;'>💌 Tus Sobrecitos de la Semana</h3>", unsafe_allow_html=True)
 df_data = [
-    {"Sobre": "⛪ Diezmo", "Target": "10%", "Origen Fijo": f"${diezmo_fijo:,.2f}", "Origen Variable": f"${diezmo_var:,.2f}", "Total Asignado": f"${t_diezmo:,.2f}", "Status": "⚪ OK"},
-    {"Sobre": "🏠 Renta", "Target": f"${t_meta_renta:,.2f}", "Origen Fijo": f"${f_renta:,.2f}", "Origen Variable": f"${v_renta:,.2f}", "Total Asignado": f"${t_renta:,.2f}", "Status": "🔵 Bloqueado" if omitir_fijo else (f"🟢 Cubierto" if t_renta>=t_meta_renta else f"🔴 -${t_meta_renta-t_renta:,.2f}")},
-    {"Sobre": "🚗 Transporte", "Target": f"${t_meta_transp:,.2f}", "Origen Fijo": f"${f_transp:,.2f}", "Origen Variable": f"${v_transp:,.2f}", "Total Asignado": f"${t_transp:,.2f}", "Status": "🔵 Bloqueado" if omitir_fijo else (f"🟢 Cubierto" if t_transp>=t_meta_transp else f"🔴 -${t_meta_transp-t_transp:,.2f}")},
-    {"Sobre": "💖 Novia", "Target": f"${t_meta_novia:,.2f}", "Origen Fijo": f"${f_novia:,.2f}", "Origen Variable": f"${v_novia:,.2f}", "Total Asignado": f"${t_novia:,.2f}", "Status": "🔵 Bloqueado" if omitir_fijo else (f"🟢 Cubierto" if t_novia>=t_meta_novia else f"🔴 -${t_meta_novia-t_novia:,.2f}")},
-    {"Sobre": "✈️ Viajes", "Target": f"${t_meta_viajes:,.2f}", "Origen Fijo": f"${f_viajes:,.2f}", "Origen Variable": f"${v_viajes:,.2f}", "Total Asignado": f"${t_viajes:,.2f}", "Status": "🔵 Bloqueado" if omitir_fijo else (f"🟢 Cubierto" if t_viajes>=t_meta_viajes else f"🔴 -${t_meta_viajes-t_viajes:,.2f}")},
-    {"Sobre": "💳 Deuda (30%)", "Target": "Variable", "Origen Fijo": f"${f_deuda:,.2f}", "Origen Variable": f"${v_deuda:,.2f}", "Total Asignado": f"${t_deuda:,.2f}", "Status": "🔥 Acelerado"},
-    {"Sobre": "🚨 Emergencias (25%)", "Target": "Variable", "Origen Fijo": f"${f_emerg:,.2f}", "Origen Variable": f"${v_emerg:,.2f}", "Total Asignado": f"${t_emerg:,.2f}", "Status": "🛡️ Acumulando"},
-    {"Sobre": "🛌 Colchón (25%)", "Target": "Variable", "Origen Fijo": f"${f_colchon:,.2f}", "Origen Variable": f"${v_colchon:,.2f}", "Total Asignado": f"${t_colchon:,.2f}", "Status": "🛡️ Acumulando"},
-    {"Sobre": "📈 Retiro (20%)", "Target": "Variable", "Origen Fijo": f"${f_retiro:,.2f}", "Origen Variable": f"${v_retiro:,.2f}", "Total Asignado": f"${t_retiro:,.2f}", "Status": "🚀 S&P 500"},
-    {"Sobre": "🍿 Ocio (Premio)", "Target": "10% Var.", "Origen Fijo": f"${f_ocio:,.2f}", "Origen Variable": f"${v_ocio:,.2f}", "Total Asignado": f"${t_ocio:,.2f}", "Status": "🎮 Libre"}
+    {"Sobre": "⛪ Diezmo", "Target": "10%", "Fijo": f"${diezmo_fijo:,.2f}", "Variable": f"${diezmo_var:,.2f}", "Total": f"${t_diezmo:,.2f}", "Status": "⚪ Listo"},
+    {"Sobre": "🏠 Renta", "Target": f"${t_meta_renta:,.2f}", "Fijo": f"${f_renta:,.2f}", "Variable": f"${v_renta:,.2f}", "Total": f"${t_renta:,.2f}", "Status": "🔒 Ok" if omitir_fijo else (f"💖 Ok" if t_renta>=t_meta_renta else f"🥺 Faltan ${t_meta_renta-t_renta:,.0f}")},
+    {"Sobre": "🚗 Transporte", "Target": f"${t_meta_transp:,.2f}", "Fijo": f"${f_transp:,.2f}", "Variable": f"${v_transp:,.2f}", "Total": f"${t_transp:,.2f}", "Status": "🔒 Ok" if omitir_fijo else (f"💖 Ok" if t_transp>=t_meta_transp else f"🥺 Faltan ${t_meta_transp-t_transp:,.0f}")},
+    {"Sobre": "💖 Novia", "Target": f"${t_meta_novia:,.2f}", "Fijo": f"${f_novia:,.2f}", "Variable": f"${v_novia:,.2f}", "Total": f"${t_novia:,.2f}", "Status": "🔒 Ok" if omitir_fijo else (f"💖 Ok" if t_novia>=t_meta_novia else f"🥺 Faltan ${t_meta_novia-t_novia:,.0f}")},
+    {"Sobre": "✈️ Viajes", "Target": f"${t_meta_viajes:,.2f}", "Fijo": f"${f_viajes:,.2f}", "Variable": f"${v_viajes:,.2f}", "Total": f"${t_viajes:,.2f}", "Status": "🔒 Ok" if omitir_fijo else (f"💖 Ok" if t_viajes>=t_meta_viajes else f"🥺 Faltan ${t_meta_viajes-t_viajes:,.0f}")},
+    {"Sobre": "💳 Deuda (30%)", "Target": "Variable", "Fijo": f"${f_deuda:,.2f}", "Variable": f"${v_deuda:,.2f}", "Total": f"${t_deuda:,.2f}", "Status": "🔥 Pagando"},
+    {"Sobre": "🚨 Emergencias (25%)", "Target": "Variable", "Fijo": f"${f_emerg:,.2f}", "Variable": f"${v_emerg:,.2f}", "Total": f"${t_emerg:,.2f}", "Status": "🛡️ Creciendo"},
+    {"Sobre": "🛌 Colchón (25%)", "Target": "Variable", "Fijo": f"${f_colchon:,.2f}", "Variable": f"${v_colchon:,.2f}", "Total": f"${t_colchon:,.2f}", "Status": "🛡️ Creciendo"},
+    {"Sobre": "📈 Retiro (20%)", "Target": "Variable", "Fijo": f"${f_retiro:,.2f}", "Variable": f"${v_retiro:,.2f}", "Total": f"${t_retiro:,.2f}", "Status": "🚀 A invertir"},
+    {"Sobre": "🍿 Ocio (Tu Premio)", "Target": "10% Var.", "Fijo": f"${f_ocio:,.2f}", "Variable": f"${v_ocio:,.2f}", "Total": f"${t_ocio:,.2f}", "Status": "🎮 ¡Disfruta!"}
 ]
 st.dataframe(pd.DataFrame(df_data), use_container_width=True, hide_index=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==========================================
-# 2. NUEVA TABLA: GUÍA DE DEPÓSITOS CONSOLIDADOS
+# 2. NUEVA TABLA: GUÍA DE DEPÓSITOS
 # ==========================================
-st.markdown("### 🏦 ENRUTAMIENTO DE CAPITAL (Transferencias)")
+st.markdown("<h3 style='color: #ff758c;'>🏦 ¿A dónde transfiero, bb?</h3>", unsafe_allow_html=True)
 
 t_nu_total = t_renta + t_transp + t_emerg + t_colchon
 
 df_bancos = [
-    {"Vector de Destino": "⛪ Diezmo", "Monto a Transferir": f"${t_diezmo:,.2f}", "Institución": "Revolut", "CLABE / Cuenta": "% %"},
-    {"Vector de Destino": "🟣 Consolidado Nu (Renta, Transp, Emerg, Colchón)", "Monto a Transferir": f"${t_nu_total:,.2f}", "Institución": "Nu", "CLABE / Cuenta": "638180000126660124"},
-    {"Vector de Destino": "📈 Retiro", "Monto a Transferir": f"${t_retiro:,.2f}", "Institución": "GBM", "CLABE / Cuenta": "601180400073884389"},
-    {"Vector de Destino": "💳 Deuda", "Monto a Transferir": f"${t_deuda:,.2f}", "Institución": "Otra Cuenta", "CLABE / Cuenta": "% %"},
-    {"Vector de Destino": "✈️ Viajes", "Monto a Transferir": f"${t_viajes:,.2f}", "Institución": "Otra Cuenta", "CLABE / Cuenta": "% %"},
-    {"Vector de Destino": "💖 Novia", "Monto a Transferir": f"${t_novia:,.2f}", "Institución": "Apartado Libre", "CLABE / Cuenta": "% %"},
-    {"Vector de Destino": "🍿 Ocio", "Monto a Transferir": f"${t_ocio:,.2f}", "Institución": "Cuenta Uso Diario", "CLABE / Cuenta": "% %"}
+    {"Destino": "⛪ Diezmo", "Monto Exacto": f"${t_diezmo:,.2f}", "Banco": "Revolut", "Cuenta/CLABE": "% %"},
+    {"Destino": "🟣 Consolidado Nu (Renta, Transp, Emerg, Colchón)", "Monto Exacto": f"${t_nu_total:,.2f}", "Banco": "Nu", "Cuenta/CLABE": "638180000126660124"},
+    {"Destino": "📈 Retiro", "Monto Exacto": f"${t_retiro:,.2f}", "Banco": "GBM", "Cuenta/CLABE": "601180400073884389"},
+    {"Destino": "💳 Deuda", "Monto Exacto": f"${t_deuda:,.2f}", "Banco": "Otra Cuenta", "Cuenta/CLABE": "% %"},
+    {"Destino": "✈️ Viajes", "Monto Exacto": f"${t_viajes:,.2f}", "Banco": "Otra Cuenta", "Cuenta/CLABE": "% %"},
+    {"Destino": "💖 Novia", "Monto Exacto": f"${t_novia:,.2f}", "Banco": "Apartado Libre", "Cuenta/CLABE": "% %"},
+    {"Destino": "🍿 Ocio", "Monto Exacto": f"${t_ocio:,.2f}", "Banco": "Cuenta Uso Diario", "Cuenta/CLABE": "% %"}
 ]
 st.dataframe(pd.DataFrame(df_bancos), use_container_width=True, hide_index=True)
 
 st.markdown("<br><br>", unsafe_allow_html=True)
 
 # ==========================================
-# BOTÓN DE ACCIÓN CON ANIMACIÓN, SONIDO Y RESET
+# BOTÓN DE ACCIÓN 
 # ==========================================
 col_espacio1, col_boton, col_espacio2 = st.columns([1, 2, 1])
 
 with col_boton:
-    st.button("🚀 EJECUTAR DISPERSIÓN DE CAPITAL", on_click=confirmar_deposito)
+    st.button("💖 LISTO BB, DINERO GUARDADO ✨", on_click=confirmar_deposito)
 
 if st.session_state.exito_trigger:
     st.balloons()
-    st.toast('Sistemas actualizados. Dispersión enviada a sobres.', icon='✅')
+    st.toast('¡Transferencias completadas, gran trabajo esta semana! 🎉', icon='✨')
     
-    # Audio forzado por JavaScript
+    # Intento de forzar audio (Bloqueado por defecto en la mayoría de navegadores sin clic directo a etiqueta HTML)
     st.components.v1.html(
         """
-        <audio id="kaching" src="https://actions.google.com/sounds/v1/foley/cash_register_kaching.ogg"></audio>
-        <script>
-            var audio = document.getElementById("kaching");
-            audio.volume = 1.0;
-            audio.play().catch(function(error) {
-                console.log("Autoplay bloqueado por el navegador");
-            });
-        </script>
+        <audio autoplay>
+            <source src="https://actions.google.com/sounds/v1/foley/cash_register_kaching.ogg" type="audio/ogg">
+        </audio>
         """, 
         width=0, height=0
     )
