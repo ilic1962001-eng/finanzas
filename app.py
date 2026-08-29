@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # ==========================================
-# INICIALIZACIÓN DE MEMORIA
+# INICIALIZACIÓN DE MEMORIA (Checkboxes y Valores)
 # ==========================================
 if 'fijo_val' not in st.session_state:
     st.session_state.fijo_val = 2329.0
@@ -13,11 +13,21 @@ if 'var_val' not in st.session_state:
 if 'exito_trigger' not in st.session_state:
     st.session_state.exito_trigger = False
 
+# Crear variables en memoria para los 6 checkboxes de los bancos
+for i in range(6):
+    if f'chk_banco_{i}' not in st.session_state:
+        st.session_state[f'chk_banco_{i}'] = False
+
 def confirmar_deposito():
+    # 1. Dispara la animación y el sonido
     st.session_state.exito_trigger = True
+    # 2. Resetea los montos a cero
     st.session_state.fijo_val = 0.0
     st.session_state.deduc_val = 0.0
     st.session_state.var_val = 0.0
+    # 3. Desmarca todos los checkboxes de los bancos
+    for i in range(6):
+        st.session_state[f'chk_banco_{i}'] = False
 
 # ==========================================
 # CONFIGURACIÓN DE PÁGINA Y ESTILO ELEGANTE
@@ -29,6 +39,11 @@ st.markdown("""
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
+    
+    /* Ocultar el reproductor de audio nativo para que suene de forma invisible */
+    audio {
+        display: none !important;
+    }
     
     .stApp {
         background-color: #fafbfc;
@@ -99,16 +114,20 @@ st.markdown("""
         color: #ffffff;
     }
     
-    .etiqueta-app {
+    .link-banco {
         display: inline-block;
         padding: 8px 15px;
         background-color: #f1f3f5;
-        color: #764ba2;
+        color: #764ba2 !important;
         border-radius: 8px;
+        text-decoration: none;
         font-weight: 600;
         font-size: 0.95rem;
-        user-select: none;
-        border: 1px solid #e9ecef;
+        transition: background 0.3s;
+    }
+    .link-banco:hover {
+        background-color: #764ba2;
+        color: #ffffff !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -263,16 +282,16 @@ st.dataframe(pd.DataFrame(df_data), use_container_width=True, hide_index=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==========================================
-# 2. GUÍA DE DEPÓSITOS (UI INTERACTIVA)
+# 2. GUÍA DE DEPÓSITOS (UI INTERACTIVA CON CHECKBOXES)
 # ==========================================
 st.markdown("<h3 style='color: #667eea;'>🏦 ¿A dónde transfiero, bb?</h3>", unsafe_allow_html=True)
 
-st.markdown("<div style='text-align: center; margin-bottom: 25px;'><span class='etiqueta-app'>🚀 Comienza desde la app de Hey Banco (Tu Central)</span></div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: center; margin-bottom: 25px;'><a href='https://banco.hey.inc/' target='_blank' class='link-banco'>🚀 Abrir Hey Banco (Tu Central)</a></div>", unsafe_allow_html=True)
 
 t_nu_operativo = t_renta + t_transp + t_viajes
 t_revolut_rendimiento = t_diezmo + t_emerg + t_colchon
 t_santander = t_deuda + t_ocio
-t_spin = 0.0 # Spin queda libre para uso opcional
+t_spin = 0.0 
 t_hey = t_novia
 
 destinos = [
@@ -284,7 +303,8 @@ destinos = [
     {"Nombre": "🏪 Spin by Oxxo (Opcional / Vacía)", "Monto": t_spin, "CLABE": "728969000033664690"}
 ]
 
-for d in destinos:
+# Generar la lista interactiva con checkboxes vinculados al session_state
+for i, d in enumerate(destinos):
     with st.container():
         col1, col2, col3, col4 = st.columns([3, 2, 3, 2])
         col1.markdown(f"<div style='font-size: 1.1rem; font-weight: 600; color: #333333; margin-top: 10px;'>{d['Nombre']}</div>", unsafe_allow_html=True)
@@ -296,14 +316,17 @@ for d in destinos:
             else:
                 st.markdown("<div style='margin-top: 10px; color: #888888; font-style: italic;'>Sin CLABE (Traspaso interno)</div>", unsafe_allow_html=True)
                 
-        col4.markdown("<div style='margin-top: 10px;'><span class='etiqueta-app'>📱 Usa tu App</span></div>", unsafe_allow_html=True)
-        
+        with col4:
+            st.markdown("<div style='margin-top: 5px;'></div>", unsafe_allow_html=True)
+            # Checkbox que se vincula a la memoria temporal (para poder resetearse)
+            st.checkbox("✅ Listo", key=f"chk_banco_{i}")
+            
     st.markdown("<hr style='margin: 0.5em 0; border: 0.5px solid #e9ecef;'>", unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ==========================================
-# BOTÓN DE ACCIÓN Y SONIDO (CORREGIDO PARA DOM PRINCIPAL)
+# BOTÓN DE ACCIÓN Y SONIDO NATIVO
 # ==========================================
 col_espacio1, col_boton, col_espacio2 = st.columns([1, 2, 1])
 
@@ -314,14 +337,10 @@ if st.session_state.exito_trigger:
     st.balloons()
     st.toast('¡Transferencias completadas, gran trabajo esta semana! 🎉', icon='✨')
     
-    # Inyección directa de HTML al DOM principal (evita el bloqueo de iframes de Streamlit Components)
-    st.markdown(
-        """
-        <audio autoplay>
-            <source src="https://actions.google.com/sounds/v1/foley/cash_register_kaching.ogg" type="audio/ogg">
-        </audio>
-        """, 
-        unsafe_allow_html=True
-    )
+    # NUEVO MÉTODO DE AUDIO: Usa la función nativa de Streamlit (evita bloqueos de seguridad del navegador)
+    st.audio("https://actions.google.com/sounds/v1/foley/cash_register_kaching.ogg", format="audio/ogg", autoplay=True)
+    
+    # También inyectamos el HTML crudo por si tu versión de Streamlit es anterior a la 1.36
+    st.markdown('<audio src="https://actions.google.com/sounds/v1/foley/cash_register_kaching.ogg" autoplay></audio>', unsafe_allow_html=True)
     
     st.session_state.exito_trigger = False
