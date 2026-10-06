@@ -265,30 +265,11 @@ impuesto_qa = min(
 # GASTOS OBLIGATORIOS
 # =========================================================
 
-gastos_fijos = 0.0 if omitir_fijos else GASTOS_FIJOS_SEMANANALES
+gastos_fijos = 0.0 if omitir_fijos else GASTOS_FIJOS_SEMANALES
 
 sgmm = SGMM_SEMANAL
 
 ppr = PPR_SEMANAL
-
-
-# =========================================================
-# BASE DE PRESUPUESTO
-# =========================================================
-
-# El sistema toma $8,500 como presupuesto objetivo.
-#
-# Si ganas más:
-#     se activa el efecto gatillo.
-#
-# Si ganas menos:
-#     el sistema calcula sobre lo realmente recibido,
-#     sin inventar dinero.
-
-ingreso_para_presupuesto = min(
-    ingreso_total,
-    BASE_SEMANAL
-)
 
 
 # =========================================================
@@ -402,7 +383,6 @@ elif diferencia < 0:
         crecimiento,
         abs(diferencia)
     )
-
     crecimiento -= ajuste
 
 
