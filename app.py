@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # ==========================================
-# INICIALIZACIÓN DE MEMORIA (Checkboxes y Valores)
+# INICIALIZACIÓN DE MEMORIA
 # ==========================================
 if 'fijo_val' not in st.session_state:
     st.session_state.fijo_val = 2329.0
@@ -13,38 +13,41 @@ if 'var_val' not in st.session_state:
 if 'exito_trigger' not in st.session_state:
     st.session_state.exito_trigger = False
 
-# Crear variables en memoria para los 6 checkboxes de los bancos
 for i in range(6):
     if f'chk_banco_{i}' not in st.session_state:
         st.session_state[f'chk_banco_{i}'] = False
 
+
 def confirmar_deposito():
-    # 1. Dispara la animación y el sonido
     st.session_state.exito_trigger = True
-    # 2. Resetea los montos a cero
+
     st.session_state.fijo_val = 0.0
     st.session_state.deduc_val = 0.0
     st.session_state.var_val = 0.0
-    # 3. Desmarca todos los checkboxes de los bancos
+
     for i in range(6):
         st.session_state[f'chk_banco_{i}'] = False
 
+
 # ==========================================
-# CONFIGURACIÓN DE PÁGINA Y ESTILO ELEGANTE
+# CONFIGURACIÓN DE PÁGINA Y ESTILO
 # ==========================================
-st.set_page_config(page_title="Mi vida con Mirssa ✨", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(
+    page_title="Mi vida con Mirssa ✨",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    
-    /* Ocultar el reproductor de audio nativo para que suene de forma invisible */
+
     audio {
         display: none !important;
     }
-    
+
     .stApp {
         background-color: #fafbfc;
         color: #333333;
@@ -61,7 +64,7 @@ st.markdown("""
         margin-bottom: 0px;
         padding-top: 10px;
     }
-    
+
     .subtitulo {
         text-align: center;
         color: #764ba2;
@@ -79,10 +82,12 @@ st.markdown("""
         border-left: 5px solid #667eea;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+
     div[data-testid="metric-container"]:hover {
         transform: translateY(-3px);
         box-shadow: 0 8px 15px rgba(0, 0, 0, 0.08);
     }
+
     div[data-testid="metric-container"] label {
         color: #888888 !important;
         font-weight: 600 !important;
@@ -90,6 +95,7 @@ st.markdown("""
         text-transform: uppercase;
         letter-spacing: 1px;
     }
+
     div[data-testid="metric-container"] div[data-testid="stMetricValue"] {
         color: #333333 !important;
         font-size: 2.2rem !important;
@@ -108,12 +114,13 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3);
         transition: all 0.3s ease;
     }
+
     .stButton > button:hover {
         transform: scale(1.02) translateY(-2px);
         box-shadow: 0 8px 16px rgba(118, 75, 162, 0.4);
         color: #ffffff;
     }
-    
+
     .link-banco {
         display: inline-block;
         padding: 8px 15px;
@@ -125,6 +132,7 @@ st.markdown("""
         font-size: 0.95rem;
         transition: background 0.3s;
     }
+
     .link-banco:hover {
         background-color: #764ba2;
         color: #ffffff !important;
@@ -132,215 +140,669 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
 # ==========================================
-# CONSTANTES FINANCIERAS
+# NUEVO CEREBRO FINANCIERO
 # ==========================================
+
+# ------------------------------------------
+# PRIORIDADES
+# ------------------------------------------
+
+# Diezmo
 DIEZMO_PCT = 0.10
-OCIO_VAR_PCT = 0.10  
 
-P_DEUDA = 0.30
-P_RETIRO = 0.20
-P_EMERG = 0.25
-P_COLCHON = 0.25
+# Reserva fiscal provisional SOLAMENTE sobre QA.
+# Se podrá cambiar cuando el contador determine
+# la obligación real.
+IMPUESTO_QA_PCT = 0.10
 
-META_RENTA = 1000.0
-META_TRANSPORTE = 300.0
-META_NOVIA = 300.0
-META_VIAJES = 200.0
-meta_inamovibles_total = META_RENTA + META_TRANSPORTE + META_NOVIA + META_VIAJES
+# SGMM: fondo independiente
+SGMM_SEMANAL = 800.0
+
+# PPR: $4,000 mensuales
+PPR_MENSUAL = 4000.0
+
+# ------------------------------------------
+# GASTOS FIJOS MENSUALES
+# ------------------------------------------
+
+RENTA_MENSUAL = 1500.0
+UNIVERSIDAD_MENSUAL = 2500.0
+MAMA_MENSUAL = 4000.0
+CONTADOR_MENSUAL = 1500.0
+
+GASTOS_FIJOS_MENSUALES = (
+    RENTA_MENSUAL +
+    UNIVERSIDAD_MENSUAL +
+    MAMA_MENSUAL +
+    CONTADOR_MENSUAL
+)
+
+# Conversión mensual → semanal usando 52 semanas
+GASTOS_FIJOS_SEMANALES = (
+    GASTOS_FIJOS_MENSUALES * 12 / 52
+)
+
+# ------------------------------------------
+# REPARTO DEL DINERO DISPONIBLE
+# ------------------------------------------
+
+DEUDA_PCT = 0.10
+EMERGENCIA_PCT = 0.08
+CRECIMIENTO_PCT = 0.08
+OCIO_PCT = 0.076
+
 
 # ==========================================
 # HEADER E INPUTS
 # ==========================================
-st.markdown("<div class='titulo-pro'>¿Cuánto ganaste bb?</div>", unsafe_allow_html=True)
-st.markdown("<div class='subtitulo'>Mi vida con Mirssa ✨</div>", unsafe_allow_html=True)
+
+st.markdown(
+    "<div class='titulo-pro'>¿Cuánto ganaste bb?</div>",
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    "<div class='subtitulo'>Mi vida con Mirssa ✨</div>",
+    unsafe_allow_html=True
+)
 
 with st.container():
+
     c_in1, c_in2, c_in3 = st.columns(3)
+
     with c_in1:
-        ingreso_fijo_bruto = st.number_input("💵 Tu Sueldo Fijo ($)", min_value=0.0, step=100.0, key="fijo_val")
+        ingreso_fijo_bruto = st.number_input(
+            "💵 Tu Sueldo Fijo ($)",
+            min_value=0.0,
+            step=100.0,
+            key="fijo_val"
+        )
+
     with c_in2:
-        deducciones = st.number_input("✂️ ¿Te quitaron algo? ($)", min_value=0.0, step=10.0, key="deduc_val")
+        deducciones = st.number_input(
+            "✂️ ¿Te quitaron algo? ($)",
+            min_value=0.0,
+            step=10.0,
+            key="deduc_val"
+        )
+
     with c_in3:
-        ingreso_var_bruto = st.number_input("📈 Tus Extras (Variable) ($)", min_value=0.0, step=100.0, key="var_val")
+        ingreso_var_bruto = st.number_input(
+            "📈 Tus Extras (Variable) ($)",
+            min_value=0.0,
+            step=100.0,
+            key="var_val"
+        )
 
     st.markdown("<br>", unsafe_allow_html=True)
-    omitir_fijo = st.checkbox("✨ Ya pagué los gastos fijos esta semana (Omitir Fijo)", value=False)
+
+    omitir_fijo = st.checkbox(
+        "✨ Ya pagué los gastos fijos esta semana (Omitir Fijo)",
+        value=False
+    )
 
 st.markdown("---")
 
+
 # ==========================================
-# CEREBRO MATEMÁTICO 
+# 1. INGRESOS
 # ==========================================
-fijo_disponible = max(0.0, ingreso_fijo_bruto - deducciones)
-total_ingreso_real = fijo_disponible + ingreso_var_bruto 
 
-diezmo_fijo = fijo_disponible * DIEZMO_PCT if not omitir_fijo else 0.0
-fijo_neto = fijo_disponible - diezmo_fijo
-diezmo_var = ingreso_var_bruto * DIEZMO_PCT
-var_neto_inicial = ingreso_var_bruto - diezmo_var
+fijo_disponible = max(
+    0.0,
+    ingreso_fijo_bruto - deducciones
+)
 
-v_ocio = var_neto_inicial * OCIO_VAR_PCT
-f_ocio = 0.0  
-var_neto = var_neto_inicial - v_ocio  
+total_ingreso_real = (
+    fijo_disponible +
+    ingreso_var_bruto
+)
 
-total_neto_para_repartir = fijo_neto + var_neto 
+
+# ==========================================
+# 2. RESERVA FISCAL DE QA
+# ==========================================
+
+# El sueldo fijo de DoorDash no entra aquí.
+# La reserva fiscal se calcula solamente sobre QA.
+
+impuesto_qa = (
+    ingreso_var_bruto * IMPUESTO_QA_PCT
+)
+
+
+qa_despues_impuestos = (
+    ingreso_var_bruto - impuesto_qa
+)
+
+
+# ==========================================
+# 3. DIEZMO
+# ==========================================
+
+# El diezmo se calcula sobre el dinero recibido
+# después de las deducciones indicadas.
+
+base_diezmo = (
+    fijo_disponible +
+    ingreso_var_bruto
+)
+
+diezmo_total = (
+    base_diezmo * DIEZMO_PCT
+)
+
+
+# Para continuar con el reparto,
+# descontamos el diezmo del ingreso total.
+
+dinero_despues_diezmo = (
+    total_ingreso_real -
+    diezmo_total
+)
+
+
+# ==========================================
+# 4. SGMM
+# ==========================================
+
+# El SGMM se maneja como fondo independiente.
+
+sgmm = SGMM_SEMANAL
+
+
+# ==========================================
+# 5. PPR
+# ==========================================
+
+# $4,000 mensuales ≈ $923.08 por semana
+
+ppr_semanal = (
+    PPR_MENSUAL * 12 / 52
+)
+
+
+# ==========================================
+# 6. GASTOS FIJOS
+# ==========================================
 
 if omitir_fijo:
-    t_meta_renta = t_meta_transp = t_meta_novia = t_meta_viajes = 0.0
+    gastos_fijos_semana = 0.0
 else:
-    if (total_neto_para_repartir * 0.50) > meta_inamovibles_total:
-        factor = (total_neto_para_repartir * 0.50) / meta_inamovibles_total
-        t_meta_renta = META_RENTA * factor
-        t_meta_transp = META_TRANSPORTE * factor
-        t_meta_novia = META_NOVIA * factor
-        t_meta_viajes = META_VIAJES * factor
-    else:
-        t_meta_renta = META_RENTA
-        t_meta_transp = META_TRANSPORTE
-        t_meta_novia = META_NOVIA
-        t_meta_viajes = META_VIAJES
+    gastos_fijos_semana = GASTOS_FIJOS_SEMANALES
 
-def llenar_sobre(meta, disp_fijo, disp_var):
-    uso_fijo = min(meta, disp_fijo)
-    disp_fijo -= uso_fijo
-    faltante = meta - uso_fijo
-    uso_var = min(faltante, disp_var)
-    disp_var -= uso_var
-    return uso_fijo, uso_var, disp_fijo, disp_var
-
-f_restante = fijo_neto
-v_restante = var_neto
-
-f_renta, v_renta, f_restante, v_restante = llenar_sobre(t_meta_renta, f_restante, v_restante)
-f_transp, v_transp, f_restante, v_restante = llenar_sobre(t_meta_transp, f_restante, v_restante)
-f_novia, v_novia, f_restante, v_restante = llenar_sobre(t_meta_novia, f_restante, v_restante)
-f_viajes, v_viajes, f_restante, v_restante = llenar_sobre(t_meta_viajes, f_restante, v_restante)
-
-f_deuda = f_restante * P_DEUDA; v_deuda = v_restante * P_DEUDA
-f_retiro = f_restante * P_RETIRO; v_retiro = v_restante * P_RETIRO
-f_emerg = f_restante * P_EMERG; v_emerg = v_restante * P_EMERG
-f_colchon = f_restante * P_COLCHON; v_colchon = v_restante * P_COLCHON
 
 # ==========================================
-# TOTALES EXACTOS
+# 7. DINERO DESPUÉS DE OBLIGACIONES
 # ==========================================
-t_diezmo = diezmo_fijo + diezmo_var
-t_renta = f_renta + v_renta
-t_transp = f_transp + v_transp
-t_novia = f_novia + v_novia
-t_viajes = f_viajes + v_viajes
-t_deuda = f_deuda + v_deuda
-t_emerg = f_emerg + v_emerg
-t_colchon = f_colchon + v_colchon
-t_retiro = f_retiro + v_retiro
-t_ocio = f_ocio + v_ocio
 
-deficit_total = max(0.0, meta_inamovibles_total - (t_renta + t_transp + t_novia + t_viajes))
-proyeccion = t_retiro * (((1 + (0.07 / 52))**(30 * 52)) - 1) / (0.07 / 52) if t_retiro > 0 else 0.0
+dinero_comprometido = (
+    impuesto_qa +
+    diezmo_total +
+    sgmm +
+    ppr_semanal +
+    gastos_fijos_semana
+)
+
+dinero_despues_obligaciones = max(
+    0.0,
+    total_ingreso_real - dinero_comprometido
+)
+
 
 # ==========================================
-# MÉTRICAS VISUALES SUPERIORES
+# 8. FONDOS FLEXIBLES
 # ==========================================
+
+t_deuda = (
+    dinero_despues_obligaciones *
+    DEUDA_PCT
+)
+
+t_emerg = (
+    dinero_despues_obligaciones *
+    EMERGENCIA_PCT
+)
+
+t_crecimiento = (
+    dinero_despues_obligaciones *
+    CRECIMIENTO_PCT
+)
+
+t_ocio = (
+    dinero_despues_obligaciones *
+    OCIO_PCT
+)
+
+
+# ==========================================
+# 9. DINERO RESTANTE
+# ==========================================
+
+porcentaje_flexible_usado = (
+    DEUDA_PCT +
+    EMERGENCIA_PCT +
+    CRECIMIENTO_PCT +
+    OCIO_PCT
+)
+
+t_disponible = max(
+    0.0,
+    dinero_despues_obligaciones *
+    (1 - porcentaje_flexible_usado)
+)
+
+
+# ==========================================
+# 10. TOTALES
+# ==========================================
+
+t_diezmo = diezmo_total
+t_impuestos = impuesto_qa
+t_sgmm = sgmm
+t_ppr = ppr_semanal
+t_fijos = gastos_fijos_semana
+
+t_fijo_total = (
+    t_fijos +
+    t_sgmm +
+    t_ppr
+)
+
+t_fondo_financiero = (
+    t_deuda +
+    t_emerg +
+    t_crecimiento
+)
+
+t_ahorro_inversion = (
+    t_ppr +
+    t_sgmm +
+    t_emerg +
+    t_crecimiento
+)
+
+
+# ==========================================
+# 11. PROYECCIÓN PPR
+# ==========================================
+
+# Aproximación al 7% anual durante 30 años
+
+proyeccion = (
+    t_ppr *
+    (
+        ((1 + (0.07 / 52)) ** (30 * 52) - 1)
+        / (0.07 / 52)
+    )
+    if t_ppr > 0
+    else 0.0
+)
+
+
+# ==========================================
+# 12. MÉTRICAS SUPERIORES
+# ==========================================
+
 c1, c2, c3, c4 = st.columns(4)
-with c1: 
-    st.metric("💰 Dinero en Mano", f"${total_ingreso_real:,.2f}")
-with c2: 
-    st.metric("🌱 Para Nuestro Futuro", f"${(t_emerg + t_colchon + t_deuda + t_ocio):,.2f}")
-with c3: 
-    st.metric("🏰 Proyección (30 Años)", f"${proyeccion:,.2f}")
+
+with c1:
+    st.metric(
+        "💰 Dinero en Mano",
+        f"${total_ingreso_real:,.2f}"
+    )
+
+with c2:
+    st.metric(
+        "🌱 Para Nuestro Futuro",
+        f"${t_ahorro_inversion:,.2f}"
+    )
+
+with c3:
+    st.metric(
+        "🏰 Proyección (30 Años)",
+        f"${proyeccion:,.2f}"
+    )
+
 with c4:
+
     if omitir_fijo:
-        st.metric("📌 Fijos de la Semana", "CUBIERTOS ✅")
-    elif (total_neto_para_repartir * 0.50) > meta_inamovibles_total:
-        st.metric("📌 Fijos de la Semana", "SÚPER BIEN 🚀")
-    elif deficit_total <= 0.01:
-        st.metric("📌 Fijos de la Semana", "AL LÍMITE ⚖️")
+        st.metric(
+            "📌 Fijos de la Semana",
+            "CUBIERTOS ✅"
+        )
+
+    elif total_ingreso_real >= dinero_comprometido:
+        st.metric(
+            "📌 Fijos de la Semana",
+            "CUBIERTOS ✅"
+        )
+
     else:
-        st.metric("⚠️ Nos Falta", f"-${deficit_total:,.2f}")
+        faltante = dinero_comprometido - total_ingreso_real
+
+        st.metric(
+            "⚠️ Nos Falta",
+            f"-${faltante:,.2f}"
+        )
+
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+
 # ==========================================
-# 1. TABLA ORIGINAL DE DESGLOSE
+# TABLA DE SOBRES
 # ==========================================
-st.markdown("<h3 style='color: #667eea;'>📊 Tus Sobres de la Semana</h3>", unsafe_allow_html=True)
+
+st.markdown(
+    "<h3 style='color: #667eea;'>📊 Tus Sobres de la Semana</h3>",
+    unsafe_allow_html=True
+)
+
 df_data = [
-    {"Sobre": "⛪ Diezmo", "Target": "10%", "Fijo": f"${diezmo_fijo:,.2f}", "Variable": f"${diezmo_var:,.2f}", "Total": f"${t_diezmo:,.2f}", "Status": "⚪ Listo"},
-    {"Sobre": "🏠 Renta", "Target": f"${t_meta_renta:,.2f}", "Fijo": f"${f_renta:,.2f}", "Variable": f"${v_renta:,.2f}", "Total": f"${t_renta:,.2f}", "Status": "🔒 Ok" if omitir_fijo else (f"✅ Ok" if t_renta>=t_meta_renta else f"⚠️ Faltan ${t_meta_renta-t_renta:,.0f}")},
-    {"Sobre": "🚗 Transporte", "Target": f"${t_meta_transp:,.2f}", "Fijo": f"${f_transp:,.2f}", "Variable": f"${v_transp:,.2f}", "Total": f"${t_transp:,.2f}", "Status": "🔒 Ok" if omitir_fijo else (f"✅ Ok" if t_transp>=t_meta_transp else f"⚠️ Faltan ${t_meta_transp-t_transp:,.0f}")},
-    {"Sobre": "💡 Novia", "Target": f"${t_meta_novia:,.2f}", "Fijo": f"${f_novia:,.2f}", "Variable": f"${v_novia:,.2f}", "Total": f"${t_novia:,.2f}", "Status": "🔒 Ok" if omitir_fijo else (f"✅ Ok" if t_novia>=t_meta_novia else f"⚠️ Faltan ${t_meta_novia-t_novia:,.0f}")},
-    {"Sobre": "✈️ Viajes", "Target": f"${t_meta_viajes:,.2f}", "Fijo": f"${f_viajes:,.2f}", "Variable": f"${v_viajes:,.2f}", "Total": f"${t_viajes:,.2f}", "Status": "🔒 Ok" if omitir_fijo else (f"✅ Ok" if t_viajes>=t_meta_viajes else f"⚠️ Faltan ${t_meta_viajes-t_viajes:,.0f}")},
-    {"Sobre": "💳 Deuda (30%)", "Target": "Variable", "Fijo": f"${f_deuda:,.2f}", "Variable": f"${v_deuda:,.2f}", "Total": f"${t_deuda:,.2f}", "Status": "🔥 Pagando"},
-    {"Sobre": "🚨 Emergencias (25%)", "Target": "Variable", "Fijo": f"${f_emerg:,.2f}", "Variable": f"${v_emerg:,.2f}", "Total": f"${t_emerg:,.2f}", "Status": "🛡️ Creciendo"},
-    {"Sobre": "🛌 Colchón (25%)", "Target": "Variable", "Fijo": f"${f_colchon:,.2f}", "Variable": f"${v_colchon:,.2f}", "Total": f"${t_colchon:,.2f}", "Status": "🛡️ Creciendo"},
-    {"Sobre": "📈 Retiro (20%)", "Target": "Variable", "Fijo": f"${f_retiro:,.2f}", "Variable": f"${v_retiro:,.2f}", "Total": f"${t_retiro:,.2f}", "Status": "🚀 A invertir"},
-    {"Sobre": "🍿 Ocio (Tu Premio)", "Target": "10% Var.", "Fijo": f"${f_ocio:,.2f}", "Variable": f"${v_ocio:,.2f}", "Total": f"${t_ocio:,.2f}", "Status": "🎮 ¡Disfruta!"}
+
+    {
+        "Sobre": "🧾 Impuestos QA",
+        "Target": "10% QA",
+        "Fijo": "$0.00",
+        "Variable": f"${t_impuestos:,.2f}",
+        "Total": f"${t_impuestos:,.2f}",
+        "Status": "🛡️ Reservado"
+    },
+
+    {
+        "Sobre": "⛪ Diezmo",
+        "Target": "10%",
+        "Fijo": f"${fijo_disponible * DIEZMO_PCT:,.2f}",
+        "Variable": f"${ingreso_var_bruto * DIEZMO_PCT:,.2f}",
+        "Total": f"${t_diezmo:,.2f}",
+        "Status": "⚪ Listo"
+    },
+
+    {
+        "Sobre": "🏠 Gastos Fijos",
+        "Target": f"${GASTOS_FIJOS_MENSUALES:,.0f}/mes",
+        "Fijo": f"${t_fijos:,.2f}",
+        "Variable": "$0.00",
+        "Total": f"${t_fijos:,.2f}",
+        "Status": "🔒 Obligatorio"
+    },
+
+    {
+        "Sobre": "🏥 SGMM",
+        "Target": "$800/sem.",
+        "Fijo": "$0.00",
+        "Variable": f"${t_sgmm:,.2f}",
+        "Total": f"${t_sgmm:,.2f}",
+        "Status": "🛡️ Fondo anual"
+    },
+
+    {
+        "Sobre": "🏦 PPR",
+        "Target": "$4,000/mes",
+        "Fijo": "$0.00",
+        "Variable": f"${t_ppr:,.2f}",
+        "Total": f"${t_ppr:,.2f}",
+        "Status": "🚀 Invirtiendo"
+    },
+
+    {
+        "Sobre": "💳 Deuda (10%)",
+        "Target": "10%",
+        "Fijo": "$0.00",
+        "Variable": f"${t_deuda:,.2f}",
+        "Total": f"${t_deuda:,.2f}",
+        "Status": "🔥 Pagando"
+    },
+
+    {
+        "Sobre": "🚨 Emergencias (8%)",
+        "Target": "8%",
+        "Fijo": "$0.00",
+        "Variable": f"${t_emerg:,.2f}",
+        "Total": f"${t_emerg:,.2f}",
+        "Status": "🛡️ Creciendo"
+    },
+
+    {
+        "Sobre": "📈 Crecimiento (8%)",
+        "Target": "8%",
+        "Fijo": "$0.00",
+        "Variable": f"${t_crecimiento:,.2f}",
+        "Total": f"${t_crecimiento:,.2f}",
+        "Status": "🚀 A invertir"
+    },
+
+    {
+        "Sobre": "🍿 Ocio (7.6%)",
+        "Target": "7.6%",
+        "Fijo": "$0.00",
+        "Variable": f"${t_ocio:,.2f}",
+        "Total": f"${t_ocio:,.2f}",
+        "Status": "🎮 ¡Disfruta!"
+    },
+
+    {
+        "Sobre": "💰 Disponible",
+        "Target": "Sin asignar",
+        "Fijo": "$0.00",
+        "Variable": f"${t_disponible:,.2f}",
+        "Total": f"${t_disponible:,.2f}",
+        "Status": "💎 Disponible"
+    }
 ]
-st.dataframe(pd.DataFrame(df_data), use_container_width=True, hide_index=True)
+
+st.dataframe(
+    pd.DataFrame(df_data),
+    use_container_width=True,
+    hide_index=True
+)
+
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# ==========================================
-# 2. GUÍA DE DEPÓSITOS (UI INTERACTIVA CON CHECKBOXES)
-# ==========================================
-st.markdown("<h3 style='color: #667eea;'>🏦 ¿A dónde transfiero, bb?</h3>", unsafe_allow_html=True)
 
-st.markdown("<div style='text-align: center; margin-bottom: 25px;'><a href='https://banco.hey.inc/' target='_blank' class='link-banco'>🚀 Abrir Hey Banco (Tu Central)</a></div>", unsafe_allow_html=True)
+# ==========================================
+# GUÍA DE DEPÓSITOS
+# ==========================================
 
-t_nu_operativo = t_renta + t_transp + t_viajes
-t_revolut_rendimiento = t_diezmo + t_emerg + t_colchon
-t_santander = t_deuda + t_ocio
-t_spin = 0.0 
-t_hey = t_novia
+st.markdown(
+    "<h3 style='color: #667eea;'>🏦 ¿A dónde transfiero, bb?</h3>",
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    "<div style='text-align: center; margin-bottom: 25px;'>"
+    "<a href='https://banco.hey.inc/' target='_blank' "
+    "class='link-banco'>🚀 Abrir Hey Banco (Tu Central)</a>"
+    "</div>",
+    unsafe_allow_html=True
+)
+
+
+# ==========================================
+# DISTRIBUCIÓN A LAS MISMAS CUENTAS
+# ==========================================
+
+# Revolut:
+# Diezmo + Emergencias + Crecimiento
+
+t_revolut_rendimiento = (
+    t_diezmo +
+    t_emerg +
+    t_crecimiento
+)
+
+
+# Nu:
+# Gastos operativos + SGMM
+
+t_nu_operativo = (
+    t_fijos +
+    t_sgmm
+)
+
+
+# Santander:
+# Deuda + Ocio
+
+t_santander = (
+    t_deuda +
+    t_ocio
+)
+
+
+# GBM:
+# PPR
+
+t_hey = t_ppr
+
+t_spin = 0.0
+
 
 destinos = [
-    {"Nombre": "⚫ Revolut (Diezmo, Emergencias, Colchón)", "Monto": t_revolut_rendimiento, "CLABE": "646990404064534378"},
-    {"Nombre": "🟣 Nu (Renta, Transporte, Viajes)", "Monto": t_nu_operativo, "CLABE": "638180000126660124"},
-    {"Nombre": "📈 GBM (Retiro S&P 500)", "Monto": t_retiro, "CLABE": "601180400073884389"},
-    {"Nombre": "🔴 Santander LikeU (Deuda, Ocio)", "Monto": t_santander, "CLABE": "014180140158246414"},
-    {"Nombre": "🔵 Hey Banco (Novia)", "Monto": t_hey, "CLABE": "APARTADO INTERNO"},
-    {"Nombre": "🏪 Spin by Oxxo (Opcional / Vacía)", "Monto": t_spin, "CLABE": "728969000033664690"}
+
+    {
+        "Nombre": "⚫ Revolut (Diezmo, Emergencias, Crecimiento)",
+        "Monto": t_revolut_rendimiento,
+        "CLABE": "646990404064534378"
+    },
+
+    {
+        "Nombre": "🟣 Nu (Gastos Fijos, SGMM)",
+        "Monto": t_nu_operativo,
+        "CLABE": "638180000126660124"
+    },
+
+    {
+        "Nombre": "📈 GBM (PPR / Retiro)",
+        "Monto": t_hey,
+        "CLABE": "601180400073884389"
+    },
+
+    {
+        "Nombre": "🔴 Santander LikeU (Deuda, Ocio)",
+        "Monto": t_santander,
+        "CLABE": "014180140158246414"
+    },
+
+    {
+        "Nombre": "🔵 Hey Banco (Novia)",
+        "Monto": 0.0,
+        "CLABE": "APARTADO INTERNO"
+    },
+
+    {
+        "Nombre": "🏪 Spin by Oxxo (Opcional / Vacía)",
+        "Monto": t_spin,
+        "CLABE": "728969000033664690"
+    }
 ]
 
-# Generar la lista interactiva con checkboxes vinculados al session_state
+
+# ==========================================
+# CHECKBOXES
+# ==========================================
+
 for i, d in enumerate(destinos):
+
     with st.container():
+
         col1, col2, col3, col4 = st.columns([3, 2, 3, 2])
-        col1.markdown(f"<div style='font-size: 1.1rem; font-weight: 600; color: #333333; margin-top: 10px;'>{d['Nombre']}</div>", unsafe_allow_html=True)
-        col2.markdown(f"<div style='font-size: 1.4rem; font-weight: 800; color: #764ba2; margin-top: 5px;'>${d['Monto']:,.2f}</div>", unsafe_allow_html=True)
-        
+
+        col1.markdown(
+            f"<div style='font-size: 1.1rem; font-weight: 600; "
+            f"color: #333333; margin-top: 10px;'>"
+            f"{d['Nombre']}</div>",
+            unsafe_allow_html=True
+        )
+
+        col2.markdown(
+            f"<div style='font-size: 1.4rem; font-weight: 800; "
+            f"color: #764ba2; margin-top: 5px;'>"
+            f"${d['Monto']:,.2f}</div>",
+            unsafe_allow_html=True
+        )
+
         with col3:
+
             if d['CLABE'] != "APARTADO INTERNO":
-                st.code(d['CLABE'], language="text")
+
+                st.code(
+                    d['CLABE'],
+                    language="text"
+                )
+
             else:
-                st.markdown("<div style='margin-top: 10px; color: #888888; font-style: italic;'>Sin CLABE (Traspaso interno)</div>", unsafe_allow_html=True)
-                
+
+                st.markdown(
+                    "<div style='margin-top: 10px; "
+                    "color: #888888; font-style: italic;'>"
+                    "Sin CLABE (Traspaso interno)</div>",
+                    unsafe_allow_html=True
+                )
+
         with col4:
-            st.markdown("<div style='margin-top: 5px;'></div>", unsafe_allow_html=True)
-            # Checkbox que se vincula a la memoria temporal (para poder resetearse)
-            st.checkbox("✅ Listo", key=f"chk_banco_{i}")
-            
-    st.markdown("<hr style='margin: 0.5em 0; border: 0.5px solid #e9ecef;'>", unsafe_allow_html=True)
+
+            st.markdown(
+                "<div style='margin-top: 5px;'></div>",
+                unsafe_allow_html=True
+            )
+
+            st.checkbox(
+                "✅ Listo",
+                key=f"chk_banco_{i}"
+            )
+
+    st.markdown(
+        "<hr style='margin: 0.5em 0; "
+        "border: 0.5px solid #e9ecef;'>",
+        unsafe_allow_html=True
+    )
+
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+
 # ==========================================
-# BOTÓN DE ACCIÓN Y SONIDO NATIVO
+# BOTÓN FINAL
 # ==========================================
+
 col_espacio1, col_boton, col_espacio2 = st.columns([1, 2, 1])
 
 with col_boton:
-    st.button("LISTO BB, DINERO GUARDADO ✨", on_click=confirmar_deposito)
+
+    st.button(
+        "LISTO BB, DINERO GUARDADO ✨",
+        on_click=confirmar_deposito
+    )
+
+
+# ==========================================
+# ANIMACIÓN Y SONIDO
+# ==========================================
 
 if st.session_state.exito_trigger:
+
     st.balloons()
-    st.toast('¡Transferencias completadas, gran trabajo esta semana! 🎉', icon='✨')
-    
-    # NUEVO MÉTODO DE AUDIO: Usa la función nativa de Streamlit (evita bloqueos de seguridad del navegador)
-    st.audio("https://actions.google.com/sounds/v1/foley/cash_register_kaching.ogg", format="audio/ogg", autoplay=True)
-    
-    # También inyectamos el HTML crudo por si tu versión de Streamlit es anterior a la 1.36
-    st.markdown('<audio src="https://actions.google.com/sounds/v1/foley/cash_register_kaching.ogg" autoplay></audio>', unsafe_allow_html=True)
-    
+
+    st.toast(
+        '¡Transferencias completadas, gran trabajo esta semana! 🎉',
+        icon='✨'
+    )
+
+    st.audio(
+        "https://actions.google.com/sounds/v1/foley/cash_register_kaching.ogg",
+        format="audio/ogg",
+        autoplay=True
+    )
+
+    st.markdown(
+        '<audio src="https://actions.google.com/sounds/v1/foley/'
+        'cash_register_kaching.ogg" autoplay></audio>',
+        unsafe_allow_html=True
+    )
+
     st.session_state.exito_trigger = False
